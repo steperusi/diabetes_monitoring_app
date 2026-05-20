@@ -1,0 +1,43 @@
+____INFO AUTH____
+
+Segretario:
+- mail: segretario@telemedicina.it
+- password: Admin123
+
+Paziente:
+- mail: mail inserita in fase di registrazione
+- password: CF del paziente .upper()
+
+es:
+Mario
+Rossi
+RSSMRA02L21M011F
+rossimario@gmail.com
+
+
+Medico:
+- mail: mail inserita in fase di registrazione
+- password: matricola del medico .upper()
+
+es:
+Luca
+Bianchi
+lucabianchi@medico.it
+MAT001
+
+
+
+____Domande_____
+
+* l'id numerato uguale per Paziente e Medico (es. 1,2,3...) è un problema?
+
+No, non è un problema. Sono tabelle diverse — un Paziente con id=1 e un Medico con id=1 sono due entità completamente distinte in PonyORM. L'id è una chiave primaria locale alla tabella, non globale al DB.
+L'unico posto dove devi fare attenzione è il dropdown inp-p-medico — il value è m.id che è l'id della tabella medico, e crea_paziente fa Medico[medico_id] che cerca correttamente nella tabella Medico. Nessun rischio di confusione.
+
+* in
+
+from models.model import model, Paziente, Medico
+
+posso togliere model siccome ho gia Paziente e Medico?
+
+no perchè mi serve per gli inserimenti, stesso ragionamento in medic_controller per le terapie
