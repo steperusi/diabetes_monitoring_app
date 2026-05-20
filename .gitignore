@@ -1,0 +1,44 @@
+# Ignore operating system files
+.DS_Store
+Thumbs.db
+
+# Ignore Visual Studio temporary files, user-specific files, and build outputs
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.pdb
+*.obj
+*.dll
+*.exe
+*.log
+*.bak
+*.tmp
+*.dbmdl
+*.ncb
+*.sdf
+*.opensdf
+
+# Ignore common build folders
+bin/
+obj/
+build/
+dist/
+
+# Ignore JetBrains Rider files
+.idea/
+*.sln.iml
+
+# Ignore Python files
+__pycache__/
+*.py[cod]
+env/
+venv/
+
+# Ignore Node.js files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

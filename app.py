@@ -1,3 +1,7 @@
+# python -m venv venv
+# .\venv\Scripts\activate
+# python app.py
+
 """
 App Dash con architettura Model-View-Controller.
 """
