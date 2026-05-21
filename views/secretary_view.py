@@ -199,6 +199,7 @@ def inserting_tab():
                 _field('Codice Fiscale *', 'inp-p-cf',      'es. RSSMRA80A01H501Z'),
                 _field('Email *',          'inp-p-email',   'es. paziente@email.it', type_='email'),
                 _field('Medico Curante *', 'inp-p-medico',  'Seleziona…', options=medici_options),
+                _field('Password *',       'inp-p-password', '', type_='password'),
             ]),
 
             html.Div([
@@ -233,6 +234,7 @@ def inserting_tab():
                 _field('Cognome *',   'inp-m-cognome',   'es. Bianchi'),
                 _field('Email *',     'inp-m-email',     'es. medico@pmdata.it', type_='email'),
                 _field('Matricola *', 'inp-m-matricola', 'es. MAT001'),
+                _field('Password *',  'inp-m-password',  '', type_='password'),
             ]),
             html.Div(id='msg-medic', style={'marginTop': '8px', 'fontSize': '13px'}),
             html.Button('Salva Medico', id='btn-save-medic', n_clicks=0, style=BTN_PRIMARY),
