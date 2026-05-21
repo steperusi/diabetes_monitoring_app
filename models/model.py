@@ -142,7 +142,7 @@ class OrmModel:
     def authenticate(self, email, password):
         u = Utente.get(email=email, password=password)
         if u:
-            return {'email': u.email, 'ruolo': u.ruolo, 'display_name': f"{u.nome} {u.cognome}"}#cosi ritorna nome e cognome
+            return {'email': u.email, 'ruolo': u.ruolo, 'display_name': f"{u.nome} {u.cognome}"}
         return None
 
     #riceve solo l'email — serve per recuperare i dati di un utente già autenticato
@@ -208,7 +208,12 @@ class OrmModel:
     
     # ---- operazioni Paziente ---------------------------------------------------
 
-    
+    def get_my_doctor(self, patient_email):
+        p = Paziente.get(utente=patient_email)
+        if p:
+            m = p.medico_riferimento
+            return {'email': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
+        return None
     
     
 

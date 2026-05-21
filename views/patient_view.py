@@ -11,7 +11,7 @@ CHAT_BOX = {'height': '300px', 'overflowY': 'auto', 'border': '1px solid #ddd',
 
 
 def patient_layout(session):
-    uid = session['username']
+    uid = session['email']
     name = session['display_name']
 
     return html.Div([

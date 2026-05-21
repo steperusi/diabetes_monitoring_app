@@ -13,12 +13,9 @@ from dash import Dash, html, dcc, Input, State, Output
 from views.login_view import login_layout
 from views.secretary_view import secretary_layout
 from views.medic_view import medic_layout
-'''
 from views.patient_view import patient_layout
-'''
 
-from controllers import auth_controller, secretary_controller, medic_controller
-''', patient_controller'''
+from controllers import auth_controller, secretary_controller, medic_controller, patient_controller
 
 # ---- App Dash ---------------------------------------------------------------
 
@@ -55,10 +52,8 @@ def route(_, session):
 auth_controller.register_callbacks(app)
 secretary_controller.register_callbacks(app)
 medic_controller.register_callbacks(app)
-'''
 patient_controller.register_callbacks(app)
 
-'''
 # ---- Main -------------------------------------------------------------------
 
 if __name__ == '__main__':

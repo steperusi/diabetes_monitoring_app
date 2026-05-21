@@ -106,11 +106,11 @@ def register_callbacks(app):
 
         # Opzioni inbox: medico accettato + conversazioni esistenti
         partners = set()
-        doc = model.get_my_doctor(session['username'])
+        doc = model.get_my_doctor(session['email'])
         if doc and doc['status'] == 'accepted':
             partners.add(doc['doctor_id'])
-        for c in model.get_inbox(session['username']):
-            partners.add(c['username'])
+        for c in model.get_inbox(session['email']):
+            partners.add(c['email'])
         options = []
         for p in sorted(partners):
             u = model.get_user(p)
@@ -118,8 +118,8 @@ def register_callbacks(app):
 
         # Chat
         if conv:
-            msgs = model.get_conversation(session['username'], conv)
-            chat = _render_chat(msgs, session['username'])
+            msgs = model.get_conversation(session['email'], conv)
+            chat = _render_chat(msgs, session['email'])
         else:
             chat = html.P('Seleziona una conversazione.', style={'color': '#888'})
 
