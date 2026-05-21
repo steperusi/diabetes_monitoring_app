@@ -106,7 +106,6 @@ def patients_tab():
     for i, p in enumerate(pazienti):
         style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
         rows.append(_table_row([
-            str(p.id),
             p.utente.nome,
             p.utente.cognome,
             p.codice_fiscale,
@@ -145,7 +144,6 @@ def medics_tab():
     for i, m in enumerate(medici):
         style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
         rows.append(_table_row([
-            str(m.id),
             m.utente.nome,
             m.utente.cognome,
             m.utente.email,
@@ -177,7 +175,7 @@ def medics_tab():
 @db_session
 def inserting_tab():
     medici_options = [
-        {'label': f"{m.utente.nome} {m.utente.cognome}", 'value': m.email}
+        {'label': f"{m.utente.nome} {m.utente.cognome}", 'value': m.utente.email}
         for m in list(Medico.select())
     ]
 
