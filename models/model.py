@@ -155,26 +155,26 @@ class OrmModel:
     
     # ---- operazioni segretario ------------------------------------------------
     @db_session
-    def crea_medico(self, nome, cognome, email, matricola):
+    def crea_medico(self, nome, cognome, email, matricola, password):
         u = Utente(
             nome=nome,
             cognome=cognome,
             email=email,
-            password=matricola.upper(),
+            password=password,
             ruolo='medico'
         )
         Medico(utente=u, matricola=matricola.upper())
         commit()
         
     @db_session
-    def crea_paziente(self, nome, cognome, email, cf, medico_id,
+    def crea_paziente(self, nome, cognome, email, cf, medico_id, password,
                     fumatore=False, ex_fumatore=False, obesita=False,
                     problemi_alcol=False, problemi_stupefacenti=False):
         u = Utente(
             nome=nome,
             cognome=cognome,
             email=email,
-            password=cf.upper(),
+            password=password,
             ruolo='paziente'
         )
         medico = Medico[medico_id]
