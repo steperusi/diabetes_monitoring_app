@@ -99,7 +99,7 @@ def _field(label: str, input_id: str, placeholder: str = '',
 # ── Schede ────────────────────────────────────────────────────────────────────
 @db_session
 def patients_tab():
-    pazienti = select(p for p in Paziente)[:]
+    pazienti = Paziente.select()[:]
 
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Medico Curante', 'Email']
     rows = []
@@ -138,7 +138,7 @@ def patients_tab():
 
 @db_session
 def medics_tab():
-    medici = select(m for m in Medico)[:]
+    medici = Medico.select()[:]
 
     headers = ['Nome', 'Cognome', 'Email', 'Matricola']
     rows = []
@@ -177,8 +177,8 @@ def medics_tab():
 @db_session
 def inserting_tab():
     medici_options = [
-        {'label': f"{m.utente.nome} {m.utente.cognome}", 'value': m.id}
-        for m in select(m for m in Medico)
+        {'label': f"{m.utente.nome} {m.utente.cognome}", 'value': m.email}
+        for m in list(Medico.select())
     ]
 
     return html.Div([
