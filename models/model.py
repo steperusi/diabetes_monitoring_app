@@ -177,7 +177,7 @@ class OrmModel:
             password=password,
             ruolo='paziente'
         )
-        medico = Medico[medico_id]
+        medico = Medico.get(utente=Utente.get(email=medico_id))
         Paziente(
             utente=u,
             medico_riferimento=medico,
@@ -192,7 +192,7 @@ class OrmModel:
 
     @db_session
     def get_medici(self):
-        return [{'id': m.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
+        return [{'id': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
                 for m in Medico.select()]
     #-----------------------------------------------------------------------------
     
