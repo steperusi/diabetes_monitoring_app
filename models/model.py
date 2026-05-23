@@ -36,6 +36,8 @@ class Utente(diabete_db.Entity):
     segretario = Optional('Segretario')
     
     alert = Set('Alert')
+    messaggi_inviati = Set('Messaggio', reverse='mittente')
+    messaggi_ricevuti = Set('Messaggio', reverse='destinatario')
 
     
 class Segretario(diabete_db.Entity):#serve solo per inserimento nuovi pazienti
@@ -119,6 +121,15 @@ class Alert(diabete_db.Entity):
     timestamp = Required(datetime, default=datetime.utcnow)
     letto = Required(bool, default=False)
     
+
+class Messaggio(diabete_db.Entity):
+    _table_ = 'messaggio'
+    id = PrimaryKey(int, auto=True)
+    mittente = Required(Utente, reverse='messaggi_inviati')
+    destinatario = Required(Utente, reverse='messaggi_ricevuti')
+    testo = Required(LongStr)
+    timestamp = Required(datetime, default=datetime.now)
+    letto = Required(bool, default=False)
     
 #---Model class---
 
@@ -145,13 +156,6 @@ class OrmModel:
         u_paz = Utente(email='marcoverdi@paziente.it', nome='Marco', cognome='Verdi', password='MarcoV123', ruolo='paziente')
         Paziente(utente=u_paz, medico_riferimento=Medico.get(utente=u_med), codice_fiscale='VRDMRC80A01H501A')
         
-        #parte di Simo
-        #medico
-        #u_medico = Utente(email='mariorossi@medico.it', nome='Mario', cognome='Rossi', password='mariorossi', ruolo='medico')
-        #medico = Medico(utente=u_medico, matricola='MAT001')
-        #paziente
-        #u_paziente = Utente(email="lucaviola@paziente.it", nome='Luca', cognome='Viola', password='lucaviola', ruolo='paziente')
-        #Paziente(utente=u_paziente,  codice_fiscale='LCCVLL12A34B567C', medico_riferimento=medico)
         commit()
     
     # ---- autenticazione -----------------------------------------------------
@@ -240,7 +244,9 @@ class OrmModel:
             quantita_per_assunzione=quantita_per_assunzione,
             unita_misura=unita_misura
         )
-        commit()            
+        commit()
+
+    @db_session                
     def get_pazienti_medico(self, medico_email: str) -> list[dict]:
         u = Utente.get(email=medico_email)
         m = Medico.get(utente=u)
@@ -248,6 +254,7 @@ class OrmModel:
             return[]
         return[
             {
+                'email': p.utente.email,
                 'nome': p.utente.nome,
                 'cognome': p.utente.cognome,
                 'codice_fiscale': p.codice_fiscale,
@@ -275,6 +282,32 @@ class OrmModel:
             return {'email': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
         return None
     
-    
+    #------ Chat -----------------------------------------------------------------  
+    @db_session
+    def invia_messaggio(self, mittente_email: str, destinatario_email: str, testo: str):
+        m = Utente.get(email=mittente_email)
+        d = Utente.get(email=destinatario_email)
+        if not m or not d:
+            raise ValueError("Utente non trovato")
+        Messaggio(mittente=m, destinatario=d, testo=testo)
+        commit()
+
+    @db_session
+    def get_conversazione(self, email_a: str, email_b: str) -> list[dict]:
+        a = Utente.get(email=email_a)
+        b = Utente.get(email=email_b)
+        if not a or not b:
+            return []
+        inviati = [m for m in a.messaggi_inviati if m.destinatario == b]
+        ricevuti = [m for m in a.messaggi_ricevuti if m.mittente == b]
+        messaggi = sorted(inviati + ricevuti, key=lambda m: m.timestamp)
+        return[
+            {
+                'mittente': m.mittente.email,
+                'testo': m.testo,
+                'timestamp': m.timestamp.strftime('%H:%M'),
+            }
+            for m in messaggi
+        ]
 
 model = OrmModel()

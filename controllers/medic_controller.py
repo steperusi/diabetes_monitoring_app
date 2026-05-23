@@ -1,9 +1,9 @@
 """Controller — callbacks del medico."""
 
-from dash import Output, Input, State
+from dash import Output, Input, State, ctx, no_update, html
 from models.model import model, Terapia, Paziente, Medico
 from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, messages_tab, _render_chat
 
 
 def register_callbacks(app):
@@ -16,10 +16,14 @@ def register_callbacks(app):
     )
     def render_tab(tab, email):
         if tab == 'patients':
-            return my_patients_tab(email)
+            pazienti = model.get_pazienti_medico(email)
+            return my_patients_tab(pazienti)
         if tab == 'view-therapies':
             return manage_therapy_tab(email)
-        return add_therapy_tab(email)
+        if tab == 'add-therapy':
+            return add_therapy_tab(email)
+        if tab == 'messages':
+            return messages_tab()
 
     #salvataggio terapia
     @app.callback(
@@ -66,3 +70,50 @@ def register_callbacks(app):
             pazienti = model.get_pazienti_medico(email)
             return my_patients_tab(pazienti)
         return my_patients_tab([])  # fallback, aggiungi altri tab qui
+
+
+# ---- messaggi -----------------------------------------------------------
+    @app.callback(
+        Output('m-conv-select', 'options'),
+        Output('m-chat-area', 'children'),
+        Output('m-msg-input', 'value'),
+        Output('m-send-status', 'children'),
+        Input('m-btn-send', 'n_clicks'),
+        Input('m-conv-select', 'value'),
+        Input('m-refresh', 'n_intervals'),
+        State('m-msg-input', 'value'),
+        State('medic-email', 'data'),
+        #prevent_initial_call = True,
+    )
+    def update_messages(send_n, conv, _, msg_text, medic_email):
+        if isinstance(medic_email, dict):
+            medic_email = medic_email.get('email')
+        if not medic_email:
+            return [], html.P('Caricamento...'), '', ''
+        
+        trigger = ctx.triggered_id
+        status = ''
+
+        # Solo i propri pazienti possono ricevere messaggi
+        pazienti = model.get_pazienti_medico(medic_email)
+        accepted = {p['codice_fiscale'] for p in pazienti}
+
+        if trigger == 'm-btn-send' and conv and msg_text:
+            try:
+                model.invia_messaggio(medic_email, conv, msg_text)
+                status='✅ Inviato.'
+            except Exception as e:
+                status = f'❌ Errore: {str(e)}'
+
+        options = [
+            {'label': f"{p['nome']} {p['cognome']}", 'value': p['email']}
+            for p in pazienti
+        ]
+        if conv:
+            msgs = model.get_conversazione(medic_email, conv)
+            chat = _render_chat(msgs, medic_email)
+        else:
+            chat = html.P('Seleziona una conversazione.', style={'color': '#9ca3af'})
+
+        new_input = '' if trigger == 'm-btn-send' else no_update
+        return options, chat, new_input, status

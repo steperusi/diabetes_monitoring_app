@@ -73,7 +73,12 @@ LABEL_STYLE = {
     'color': '#6b7280', 'marginBottom': '4px',
     'display': 'block', 'letterSpacing': '0.4px',
 }
-
+CHAT_BOX = {
+    'height': '300px', 'overflowY': 'auto',
+    'border': '1px solid #e5e7eb', 'borderRadius': '12px',
+    'padding': '12px', 'marginTop': '12px', 'marginBottom': '12px',
+    'background': '#f9fafb',
+}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _table_row(cells: list, style: dict) -> html.Div:
@@ -86,6 +91,32 @@ def _table_row(cells: list, style: dict) -> html.Div:
 
 def _badge(val: bool) -> html.Span:
     return html.Span('Sì' if val else 'No', style=BADGE_SI if val else BADGE_NO)
+
+def _render_chat(msgs: list, my_email: str) -> html.Div:
+    if not msgs:
+        return html.P('Nessun messaggio.', style={'color': '9ca3af', 'fontSize': '14px'})
+    
+    bubbles = []
+    for m in msgs:
+        is_mine = m['mittente'] == my_email
+        bubbles.append(
+            html.Div([
+                html.Div(m['testo'], style={
+                    'background': '#4748AC' if is_mine else '#f3f4f6',
+                    'color': 'white' if is_mine else '#1f2937',
+                    'borderRadius': '12px', 'padding': '8px 14px',
+                    'maxWidth': '70%', 'fontSize': '14px',
+                }),
+            html.Div(m['timestamp'], style={
+                'fontSize': '11px', 'color': '9ca3af', 'marginTop': '2px',
+            }),
+            ], style={
+                'display': 'flex', 'flexDirection': 'column',
+                'alignItems': 'flex-end' if is_mine else 'flex-start',
+                'marginBottom': '10px',
+            })
+        )
+    return html.Div(bubbles)
 
 def _field(label: str, input_id: str, placeholder: str = '',
            type_: str = 'text', options: list = None) -> html.Div:
@@ -110,15 +141,15 @@ def _field(label: str, input_id: str, placeholder: str = '',
 
 # ── Schede ────────────────────────────────────────────────────────────────────
 @db_session
-def my_patients_tab(email: str):
-    """Mostra solo i pazienti assegnati al medico loggato."""
-    utente = Utente.get(email=email)
-    medico = Medico.get(utente=utente)
+#def my_patients_tab(email: str):
+#    """Mostra solo i pazienti assegnati al medico loggato."""
+#    utente = Utente.get(email=email)
+#    medico = Medico.get(utente=utente)
 
-    if not medico:
-        return html.Div('Medico non trovato.', style={'color': '#dc2626', 'padding': '20px'})
+#    if not medico:
+#        return html.Div('Medico non trovato.', style={'color': '#dc2626', 'padding': '20px'})
 
-    pazienti = medico.pazienti.select()[:]
+#    pazienti = medico.pazienti.select()[:]
 
 def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
@@ -207,6 +238,27 @@ def manage_therapy_tab(email: str):
     ], style=CARD)
 
 
+def messages_tab() -> html.Div:
+    return html.Div([
+        html.Div('Messaggi', style=SECTION_TITLE),
+        html.Div('Scrivi ai tuoi pazienti.', style=SECTION_SUBTITLE),
+        dcc.Dropdown(id='m-conv-select', placeholder='Seleziona paziente…',
+                     style={'marginBottom': '12px'}),
+        html.Div(id='m-chat-area', style=CHAT_BOX),
+        html.Div([
+            dcc.Input(id='m-msg-input', type='text',
+                      placeholder='Scrivi messaggio…',
+                      style={**INPUT_STYLE, 'width': '75%',
+                             'display': 'inline-block', 'marginBottom': '0',
+                             'marginRight': '8px'}),
+            html.Button('Invia', id='m-btn-send', n_clicks=0, style=BTN_PRIMARY),
+        ], style={'display': 'flex', 'alignItems': 'center'}),
+        html.Div(id='m-send-status',
+                 style={'color': '#16a34a', 'marginTop': '6px', 'fontSize': '13px'}),
+        dcc.Interval(id='m-refresh', interval=5000),
+    ], style=CARD)
+
+
     
 @db_session
 def add_therapy_tab(email: str):
@@ -250,6 +302,9 @@ def add_therapy_tab(email: str):
 ], style=CARD)
     
 
+
+
+
 # ── Layout principale ─────────────────────────────────────────────────────────
 def medic_layout(session: dict) -> html.Div:
     name = session['display_name']
@@ -271,6 +326,7 @@ def medic_layout(session: dict) -> html.Div:
                 dcc.Tab(label='I tuoi Pazienti', value='patients'),
                 dcc.Tab(label='Terapie Attive', value='view-therapies'),
                 dcc.Tab(label='Aggiungi Terapia', value='add-therapy'),
+                dcc.Tab(label='Messaggi', value='messages'),
             ]),
             html.Div(id='m-tab-content'),
         ], style=CONTAINER),
