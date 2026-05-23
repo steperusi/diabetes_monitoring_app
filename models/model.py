@@ -138,21 +138,20 @@ class OrmModel:
         #inserisci tre istanze utente e assegnale ciacuna a una delle tre tabelle specializzate (Segretario, Medico, Paziente)
         u_segr = Utente(email='segretario@telemedicina.it', nome='Carlo', cognome='Mazzini', password='Admin123', ruolo='segretario')
         Segretario(utente=u_segr)
-<<<<<<< HEAD
         
         u_med = Utente(email='lucabianchi@medico.it', nome='Luca', cognome='Bianchi', password='LucaB123', ruolo='medico')
         Medico(utente=u_med, matricola='MED001')
         
         u_paz = Utente(email='marcoverdi@paziente.it', nome='Marco', cognome='Verdi', password='MarcoV123', ruolo='paziente')
         Paziente(utente=u_paz, medico_riferimento=Medico.get(utente=u_med), codice_fiscale='VRDMRC80A01H501A')
-=======
+        
+        #parte di Simo
         #medico
-        u_medico = Utente(email='mariorossi@medico.it', nome='Mario', cognome='Rossi', password='mariorossi', ruolo='medico')
-        medico = Medico(utente=u_medico, matricola='MAT001')
+        #u_medico = Utente(email='mariorossi@medico.it', nome='Mario', cognome='Rossi', password='mariorossi', ruolo='medico')
+        #medico = Medico(utente=u_medico, matricola='MAT001')
         #paziente
-        u_paziente = Utente(email="lucaviola@paziente.it", nome='Luca', cognome='Viola', password='lucaviola', ruolo='paziente')
-        Paziente(utente=u_paziente,  codice_fiscale='LCCVLL12A34B567C', medico_riferimento=medico)
->>>>>>> 382b2865dc85f4ef5ba1b1848cb91a3fec30e3ba
+        #u_paziente = Utente(email="lucaviola@paziente.it", nome='Luca', cognome='Viola', password='lucaviola', ruolo='paziente')
+        #Paziente(utente=u_paziente,  codice_fiscale='LCCVLL12A34B567C', medico_riferimento=medico)
         commit()
     
     # ---- autenticazione -----------------------------------------------------
