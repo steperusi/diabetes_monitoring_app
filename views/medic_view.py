@@ -120,22 +120,22 @@ def my_patients_tab(email: str):
 
     pazienti = medico.pazienti.select()[:]
 
+def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
                'Obesità', 'Alcolista', 'Stupefacenti']
     rows = []
     for i, p in enumerate(pazienti):
         style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
         rows.append(_table_row([
-            p.utente.nome,
-            p.utente.cognome,
-            p.codice_fiscale,
-            _badge(p.fumatore),
-            _badge(p.ex_fumatore),
-            _badge(p.obesita),
-            _badge(p.problemi_alcol),
-            _badge(p.problemi_stupefacenti),
+            p['nome'],
+            p['cognome'],
+            p['codice_fiscale'],
+            _badge(p['fumatore']),
+            _badge(p['ex-fumatore']),
+            _badge(p['obesita']),
+            _badge(p['problemi_alcol']),
+            _badge(p['problemi_stupefacenti']),
         ], style))
-
     return html.Div([
         html.Div(style={'display': 'flex', 'justifyContent': 'space-between',
                         'alignItems': 'flex-end', 'marginBottom': '4px'}, children=[

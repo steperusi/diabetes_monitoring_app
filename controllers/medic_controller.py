@@ -63,3 +63,6 @@ def register_callbacks(app):
         except Exception as e:
             return (f'❌ Errore durante l\'aggiunta della terapia: {str(e)}', 
                     {'color': '#dc2626', 'fontSize': '13px'})
+            pazienti = model.get_pazienti_medico(email)
+            return my_patients_tab(pazienti)
+        return my_patients_tab([])  # fallback, aggiungi altri tab qui
