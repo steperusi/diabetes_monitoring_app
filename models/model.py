@@ -4,12 +4,24 @@ ORM Model — tutte le operazioni dati via PonyORM + SQLite
 
 import os
 import pandas as pd
+from enum import Enum
 from datetime import datetime, date
 from pony.orm import (Database, LongStr, Required, Optional, Set, PrimaryKey, db_session, select, commit, desc)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 diabete_db = Database()
+
+
+class FarmacoEnum(str, Enum):
+    METFORMINA      = "Metformina"
+    INSULINA_RAPIDA = "Insulina rapida"
+    INSULINA_LENTA  = "Insulina lenta"
+    GLIPIZIDE       = "Glipizide"
+    SITAGLIPTIN     = "Sitagliptin"
+    EMPAGLIFLOZIN   = "Empagliflozin"
+    ALTRO           = "Altro"
+
 
 class Utente(diabete_db.Entity):
     _table_ = 'utente'
@@ -57,30 +69,24 @@ class Paziente(diabete_db.Entity):
     assunzioni = Set('Assunzione')
     segnalazioni = Set('Segnalazione')
     terapie = Set('Terapia')
-    
-    
-class Farmaco(diabete_db.Entity):
-    id = PrimaryKey(int, auto=True)
-    nome = Required(str)
 
-    terapie = Set('Terapia')
-    assunzioni = Set('Assunzione')
     
 class Terapia(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
     medico = Required(Medico)
-    farmaco = Required(Farmaco)
+    farmaco_nome = Required(str)
     data_inizio = Required(date)
     data_fine = Optional(date)
     assunzioni_giornaliere = Required(int)
     quantita_per_assunzione = Required(float)
     unita_misura = Required(str)
     indicazioni = Optional(LongStr)
-    attiva = Required(bool, default=True)
-    data_ultimo_alert = Optional(datetime)
+    #attiva = Required(bool, default=True)
+    #data_ultimo_alert = Optional(datetime)
     
     assunzioni = Set('Assunzione')
+ 
     
 class Misurazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -93,7 +99,6 @@ class Assunzione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
     terapia = Required(Terapia)
-    farmaco = Required(Farmaco)
     timestamp = Required(datetime, default=datetime)
     quantita_assunta = Required(float)
     conforme = Required(bool, default=True)
@@ -130,9 +135,15 @@ class OrmModel:
     def _seed_users(self):
         if Utente.select().count() > 0:#se è già stato minimamente popolato...
             return
-        #inserisci un istanza utente e assegnalo a Segretario
+        #inserisci tre istanze utente e assegnale ciacuna a una delle tre tabelle specializzate (Segretario, Medico, Paziente)
         u_segr = Utente(email='segretario@telemedicina.it', nome='Carlo', cognome='Mazzini', password='Admin123', ruolo='segretario')
         Segretario(utente=u_segr)
+        
+        u_med = Utente(email='lucabianchi@medico.it', nome='Luca', cognome='Bianchi', password='LucaB123', ruolo='medico')
+        Medico(utente=u_med, matricola='MED001')
+        
+        u_paz = Utente(email='marcoverdi@paziente.it', nome='Marco', cognome='Verdi', password='MarcoV123', ruolo='paziente')
+        Paziente(utente=u_paz, medico_riferimento=Medico.get(utente=u_med), codice_fiscale='VRDMRC80A01H501A')
         commit()
     
     # ---- autenticazione -----------------------------------------------------
@@ -178,6 +189,7 @@ class OrmModel:
             ruolo='paziente'
         )
         medico = Medico.get(utente=Utente.get(email=medico_id))
+        
         Paziente(
             utente=u,
             medico_riferimento=medico,
@@ -190,7 +202,7 @@ class OrmModel:
         )
         commit()
 
-    @db_session
+    @db_session #IN TEORIA NON SERVE PIù
     def get_medici(self):
         return [{'id': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
                 for m in Medico.select()]
@@ -199,8 +211,28 @@ class OrmModel:
     
     
     # ---- operazioni medico -----------------------------------------------------
-    
-    
+    @db_session
+    def crea_terapia(self, paziente_email, medico_email, farmaco_nome, data_inizio,
+                    data_fine, assunzioni_giornaliere, quantita_per_assunzione,
+                    unita_misura):#indicazioni d vedere se servono o le mettiamo in un secondo momento
+        
+        paziente = Paziente.get(utente=Utente.get(email=paziente_email))
+        medico   = Medico.get(utente=Utente.get(email=medico_email))
+        
+        if farmaco_nome not in [f.value for f in FarmacoEnum]:
+            raise ValueError(f"Farmaco '{farmaco_nome}' non valido")
+        
+        Terapia(
+            paziente=paziente,
+            medico=medico,
+            farmaco_nome=farmaco_nome,
+            data_inizio=data_inizio,
+            data_fine=data_fine,
+            assunzioni_giornaliere=assunzioni_giornaliere,
+            quantita_per_assunzione=quantita_per_assunzione,
+            unita_misura=unita_misura
+        )
+        commit()            
     
     #-----------------------------------------------------------------------------
     
@@ -208,6 +240,7 @@ class OrmModel:
     
     # ---- operazioni Paziente ---------------------------------------------------
 
+    @db_session
     def get_my_doctor(self, patient_email):
         p = Paziente.get(utente=patient_email)
         if p:
