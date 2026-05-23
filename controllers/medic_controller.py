@@ -14,5 +14,6 @@ def register_callbacks(app):
     )
     def render_tab(tab, email):
         if tab == 'patients':
-            return my_patients_tab(email)
-        return my_patients_tab(email)  # fallback, aggiungi altri tab qui
+            pazienti = model.get_pazienti_medico(email)
+            return my_patients_tab(pazienti)
+        return my_patients_tab([])  # fallback, aggiungi altri tab qui
