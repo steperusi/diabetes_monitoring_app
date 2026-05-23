@@ -133,6 +133,12 @@ class OrmModel:
         #inserisci un istanza utente e assegnalo a Segretario
         u_segr = Utente(email='segretario@telemedicina.it', nome='Carlo', cognome='Mazzini', password='Admin123', ruolo='segretario')
         Segretario(utente=u_segr)
+        #medico
+        u_medico = Utente(email='mariorossi@medico.it', nome='Mario', cognome='Rossi', password='mariorossi', ruolo='medico')
+        medico = Medico(utente=u_medico, matricola='MAT001')
+        #paziente
+        u_paziente = Utente(email="lucaviola@paziente.it", nome='Luca', cognome='Viola', password='lucaviola', ruolo='paziente')
+        Paziente(utente=u_paziente,  codice_fiscale='LCCVLL12A34B567C', medico_riferimento=medico)
         commit()
     
     # ---- autenticazione -----------------------------------------------------
@@ -199,7 +205,25 @@ class OrmModel:
     
     
     # ---- operazioni medico -----------------------------------------------------
-    
+    @db_session
+    def get_pazienti_medico(self, medico_email: str) -> list[dict]:
+        u = Utente.get(email=medico_email)
+        m = Medico.get(utente=u)
+        if not m:
+            return[]
+        return[
+            {
+                'nome': p.utente.nome,
+                'cognome': p.utente.cognome,
+                'codice_fiscale': p.codice_fiscale,
+                'fumatore': p.fumatore,
+                'ex-fumatore': p.ex_fumatore,
+                'obesita': p.obesita,
+                'problemi_alcol': p.problemi_alcol,
+                'problemi_stupefacenti': p.problemi_stupefacenti
+            }
+            for p in m.pazienti
+        ]
     
     
     #-----------------------------------------------------------------------------
@@ -209,7 +233,7 @@ class OrmModel:
     # ---- operazioni Paziente ---------------------------------------------------
 
     def get_my_doctor(self, patient_email):
-        p = Paziente.get(utente=patient_email)
+        p = Paziente.get(utente=Utente.get(email=patient_email))
         if p:
             m = p.medico_riferimento
             return {'email': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}

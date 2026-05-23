@@ -87,7 +87,8 @@ def my_patients_tab(email: str):
     if not medico:
         return html.Div('Medico non trovato.', style={'color': '#dc2626', 'padding': '20px'})
 
-    pazienti = select(p for p in Paziente if p.medico_riferimento == medico)[:]
+    #pazienti = select(p for p in Paziente if p.medico_riferimento == medico)[:]
+    pazienti = list(medico.pazienti)
 
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
                'Obesità', 'Alcolista', 'Stupefacenti']
