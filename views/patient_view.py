@@ -7,10 +7,35 @@ HEADER = {'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'c
 CONTAINER = {'maxWidth': '1400px', 'margin': 'auto', 'padding': '15px',
              'fontFamily': 'sans-serif'}
 HIDE = {'display': 'none'}
-CHAT_BOX = {'height': '300px', 'overflowY': 'auto', 'border': '1px solid #ddd',
-            'padding': '10px', 'marginTop': '10px', 'marginBottom': '10px',
-            'backgroundColor': '#f9f9f9', 'borderRadius': '4px'}
-
+CHAT_BOX = {'height': '300px', 'overflowY': 'auto', 'border': '1px solid #e5e7eb',
+            'padding': '12px', 'marginTop': '10px', 'marginBottom': '10px', 'marginTop': '12px',
+            'backgroundColor': '#f9fafb', 'borderRadius': '12px'}
+SECTION_TITLE = {
+    'fontSize': '18px', 'fontWeight': '700',
+    'color': '#4748AC', 'marginBottom': '4px',
+}
+SECTION_SUBTITLE = {
+    'fontSize': '13px', 'color': '#9ca3af', 'marginBottom': '16px',
+}
+CARD = {
+    'background': '#ffffff', 'borderRadius': '16px',
+    'padding': '24px', 'marginTop': '20px',
+    'boxShadow': '0 4px 12px rgba(0,0,0,0.07)',
+    'border': '1px solid #e5e7eb',
+}
+BTN_PRIMARY = {
+    'background': 'linear-gradient(90deg, #4748AC 0%, #5E60CE 100%)',
+    'color': 'white', 'border': 'none', 'borderRadius': '10px',
+    'padding': '10px 28px', 'fontWeight': '600', 'fontSize': '14px',
+    'cursor': 'pointer',
+}
+INPUT_STYLE = {
+    'width': '100%', 'padding': '10px 14px',
+    'border': '1px solid #d1d5db', 'borderRadius': '10px',
+    'fontSize': '14px', 'color': '#1f2937',
+    'outline': 'none', 'boxSizing': 'border-box',
+    'marginBottom': '14px',
+}
 def patient_layout(session):
     uid = session['email']
     name = session['display_name']
@@ -238,20 +263,25 @@ def patient_layout(session):
 
             # Tab Medico + Chat
             html.Div(id='p-tab-doctor', style=HIDE, children=[
-                html.H4('Il tuo medico'),
-                html.Div(id='p-doc-info', children=[
-                    html.P('Nome: Dr. Rossi'),
-                    html.P('Specializzazione: Cardiologia'),
-                ], style={'marginBottom': '15px'}),
-                html.Div(id='p-chat-box', style=CHAT_BOX, children=[
-                    # (aggiungi messaggi)
+                html.Div([
+                    html.Div('Il tuo Medico', style=SECTION_TITLE),
+                    html.Div(id='p-doc-info', style = SECTION_SUBTITLE),
                 ]),
                 html.Div([
-                    dcc.Input(id='p-chat-input', type='text', placeholder='Scrivi un messaggio...',
-                              style={'width': '80%', 'marginRight': '10px'}),
-                    html.Button('Invia', id='p-chat-send', n_clicks=0,
-                                style={'padding': '6px 20px'}),
-                ], style={'display': 'flex'}),
+                    html.Div('Messaggi', style=SECTION_TITLE),
+                    html.Div('Scrivi al tuo medico.', style=SECTION_SUBTITLE),
+                    html.Div(id='p-chat-box', style=CHAT_BOX),
+                    html.Div([
+                        dcc.Input(id='p-chat-input', type='text',
+                                  placeholder='Scrivi un messaggio...',
+                                  style={**INPUT_STYLE, 'width': '75%',
+                                         'display': 'inline-block', 'marginBottom':'0',
+                                         'marginRight': '8px'}),
+                        html.Button('Invia', id='p-chat-send', n_clicks=0, style=BTN_PRIMARY),
+                    ], style={'display': 'flex', 'alignItems': 'center'}),
+                    html.Div(id='p-chat-status',
+                             style={'color': '#16a34a', 'marginTop': '6px', 'fontSize': '13px'}),
+                ], style=CARD)
             ]),
 
             # Tab Terapia
