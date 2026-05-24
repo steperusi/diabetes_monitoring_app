@@ -328,5 +328,135 @@ def register_callbacks(app):
         
         return message, new_title, new_description, history
     
-    # Tab Dati giornalieri
-    #@app.callback()
+    # ---- Analisi dati callback (6 grafici per i momenti) --------------------------------------------------
+    @app.callback(
+        Output('p-graph-pre-colazione', 'figure'),
+        Output('p-graph-post-colazione', 'figure'),
+        Output('p-graph-pre-pranzo', 'figure'),
+        Output('p-graph-post-pranzo', 'figure'),
+        Output('p-graph-pre-cena', 'figure'),
+        Output('p-graph-post-cena', 'figure'),
+        Input('p-data-refresh', 'n_intervals'),
+        State('session', 'data'),
+    )
+    def update_misurazioni_graphs(_, session):
+        if not session:
+            # Restituisci 6 grafici vuoti
+            empty_fig = px.line(title='Nessun dato')
+            return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+        
+        momenti = {
+            'pre_colazione': 'Pre colazione',
+            'post_colazione': 'Post colazione',
+            'pre_pranzo': 'Pre pranzo',
+            'post_pranzo': 'Post pranzo',
+            'pre_cena': 'Pre cena',
+            'post_cena': 'Post cena',
+        }
+        
+        figures = []
+        for momento_key, momento_label in momenti.items():
+            misurazioni = model.get_misurazioni_ultimo_mese(session['email'], momento_key)
+            
+            if misurazioni:
+                dates = [m['date'] for m in misurazioni]
+                values = [m['valore_mg_dl'] for m in misurazioni]
+                
+                fig = px.line(
+                    x=dates,
+                    y=values,
+                    title=f'Andamento {momento_label}',
+                    labels={'x': 'Data', 'y': 'mg/dl'},
+                    template='plotly_white',
+                    markers=False
+                )
+                
+                # Determina i colori dei marker basati sui valori
+                marker_colors = []
+                if 'pre_' in momento_key:
+                    # Prima dei pasti: 80-130
+                    for v in values:
+                        if 80 <= v <= 130:
+                            marker_colors.append('green')
+                        else:
+                            marker_colors.append('red')
+                else:
+                    # Dopo i pasti: sotto 180
+                    for v in values:
+                        if v <= 180:
+                            marker_colors.append('green')
+                        else:
+                            marker_colors.append('red')
+                
+                # Aggiungi scatter trace con marker colorati
+                fig.add_scatter(
+                    x=dates,
+                    y=values,
+                    mode='markers',
+                    marker=dict(
+                        size=8,
+                        color=marker_colors,
+                        line=dict(width=1, color='white')
+                    ),
+                    hovertemplate='<b>%{x}</b><br>Valore: %{y} mg/dl<extra></extra>',
+                    showlegend=False
+                )
+                
+                fig.update_layout(
+                    hovermode='x unified',
+                    margin=dict(l=40, r=100, t=50, b=40),
+                    xaxis_title='Data',
+                    yaxis_title='mg/dl',
+                    showlegend=False,
+                )
+                fig.update_xaxes(tickformat='%d/%m', showticklabels=True)
+                
+                # Aggiungi linee di riferimento per i valori normali
+                if 'pre_' in momento_key:
+                    # Prima dei pasti: 80-130
+                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min (80)', annotation_position='right')
+                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max (130)', annotation_position='right')
+                else:
+                    # Dopo i pasti: sotto 180
+                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max (180)', annotation_position='right')
+            else:
+                fig = px.line(title=f'Nessun dato per {momento_label}')
+                fig.update_layout(template='plotly_white')
+            
+            figures.append(fig)
+        
+        return tuple(figures)
+    
+    # ---- Terapia callback --------------------------------------------------
+    @app.callback(
+        Output('p-therapy-container', 'children'),
+        Input('p-refresh', 'n_intervals'),
+        State('session', 'data'),
+    )
+    def load_terapie(_, session):
+        if not session:
+            return html.P('Nessuna sessione attiva.', style={'color': '#888'})
+        
+        terapie = model.get_terapie_paziente(session['email'])
+        
+        if not terapie:
+            return html.P('Nessuna terapia prescritta.', style={'color': '#888', 'fontStyle': 'italic'})
+        
+        terapie_elements = []
+        for terapia in terapie:
+            terapie_elements.append(
+                html.Div([
+                    html.Div([
+                        html.H5(terapia['farmaco_nome'], style={'margin': '0 0 10px 0', 'color': '#0066cc'}),
+                    ]),
+                    html.Div([
+                        html.P(f"Inizio: {terapia['data_inizio']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Fine: {terapia['data_fine']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Assunzioni giornaliere: {terapia['assunzioni_giornaliere']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Quantità per assunzione: {terapia['quantita_per_assunzione']} {terapia['unita_misura']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Indicazioni: {terapia['indicazioni']}", style={'margin': '5px 0', 'fontSize': '13px', 'color': '#666', 'fontStyle': 'italic'}),
+                    ]),
+                ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'marginBottom': '15px', 'backgroundColor': '#f9f9f9'})
+            )
+        
+        return html.Div(terapie_elements)
