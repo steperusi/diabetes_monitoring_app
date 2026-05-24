@@ -87,12 +87,6 @@ class Terapia(diabete_db.Entity):
     #attiva = Required(bool, default=True)
     #data_ultimo_alert = Optional(datetime)
     
-<<<<<<< HEAD
-=======
-    assunzioni = Set('Assunzione')
- 
-    
->>>>>>> c1fbd4971cad0e3138b1e35986414ab805ce133a
 class Misurazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
@@ -103,13 +97,10 @@ class Misurazione(diabete_db.Entity):
 class Assunzione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
-<<<<<<< HEAD
-=======
-    terapia = Required(Terapia)
->>>>>>> c1fbd4971cad0e3138b1e35986414ab805ce133a
     timestamp = Required(datetime, default=datetime)
-    farmaco = Required(Farmaco)
+    farmaco = Required(FarmacoEnum)
     quantita_assunta = Required(float)
+
     
 class Segnalazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
