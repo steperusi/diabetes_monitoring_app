@@ -4,12 +4,24 @@ ORM Model — tutte le operazioni dati via PonyORM + SQLite
 
 import os
 import pandas as pd
+from enum import Enum
 from datetime import datetime, date
 from pony.orm import (Database, LongStr, Required, Optional, Set, PrimaryKey, db_session, select, commit, desc)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 diabete_db = Database()
+
+
+class FarmacoEnum(str, Enum):
+    METFORMINA      = "Metformina"
+    INSULINA_RAPIDA = "Insulina rapida"
+    INSULINA_LENTA  = "Insulina lenta"
+    GLIPIZIDE       = "Glipizide"
+    SITAGLIPTIN     = "Sitagliptin"
+    EMPAGLIFLOZIN   = "Empagliflozin"
+    ALTRO           = "Altro"
+
 
 class Utente(diabete_db.Entity):
     _table_ = 'utente'
@@ -24,6 +36,8 @@ class Utente(diabete_db.Entity):
     segretario = Optional('Segretario')
     
     alert = Set('Alert')
+    messaggi_inviati = Set('Messaggio', reverse='mittente')
+    messaggi_ricevuti = Set('Messaggio', reverse='destinatario')
 
     
 class Segretario(diabete_db.Entity):#serve solo per inserimento nuovi pazienti
@@ -57,29 +71,28 @@ class Paziente(diabete_db.Entity):
     assunzioni = Set('Assunzione')
     segnalazioni = Set('Segnalazione')
     terapie = Set('Terapia')
-    
-    
-class Farmaco(diabete_db.Entity):
-    id = PrimaryKey(int, auto=True)
-    nome = Required(str)
 
-    terapie = Set('Terapia')
-    assunzioni = Set('Assunzione')
     
 class Terapia(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
     medico = Required(Medico)
-    farmaco = Required(Farmaco)
+    farmaco_nome = Required(str)
     data_inizio = Required(date)
     data_fine = Optional(date)
     assunzioni_giornaliere = Required(int)
     quantita_per_assunzione = Required(float)
     unita_misura = Required(str)
     indicazioni = Optional(LongStr)
-    attiva = Required(bool, default=True)
-    data_ultimo_alert = Optional(datetime)
+    #attiva = Required(bool, default=True)
+    #data_ultimo_alert = Optional(datetime)
     
+<<<<<<< HEAD
+=======
+    assunzioni = Set('Assunzione')
+ 
+    
+>>>>>>> c1fbd4971cad0e3138b1e35986414ab805ce133a
 class Misurazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
@@ -90,6 +103,10 @@ class Misurazione(diabete_db.Entity):
 class Assunzione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
+<<<<<<< HEAD
+=======
+    terapia = Required(Terapia)
+>>>>>>> c1fbd4971cad0e3138b1e35986414ab805ce133a
     timestamp = Required(datetime, default=datetime)
     farmaco = Required(Farmaco)
     quantita_assunta = Required(float)
@@ -108,6 +125,15 @@ class Alert(diabete_db.Entity):
     timestamp = Required(datetime, default=datetime.utcnow)
     letto = Required(bool, default=False)
     
+
+class Messaggio(diabete_db.Entity):
+    _table_ = 'messaggio'
+    id = PrimaryKey(int, auto=True)
+    mittente = Required(Utente, reverse='messaggi_inviati')
+    destinatario = Required(Utente, reverse='messaggi_ricevuti')
+    testo = Required(LongStr)
+    timestamp = Required(datetime, default=datetime.now)
+    letto = Required(bool, default=False)
     
 #---Model class---
 
@@ -178,7 +204,8 @@ class OrmModel:
             password=password,
             ruolo='paziente'
         )
-        medico = Medico[medico_id]
+        medico = Medico.get(utente=Utente.get(email=medico_id))
+        
         Paziente(
             utente=u,
             medico_riferimento=medico,
@@ -191,16 +218,58 @@ class OrmModel:
         )
         commit()
 
-    @db_session
+    @db_session #IN TEORIA NON SERVE PIù
     def get_medici(self):
-        return [{'id': m.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
+        return [{'id': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
                 for m in Medico.select()]
     #-----------------------------------------------------------------------------
     
     
     
     # ---- operazioni medico -----------------------------------------------------
-    
+    @db_session
+    def crea_terapia(self, paziente_email, medico_email, farmaco_nome, data_inizio,
+                    data_fine, assunzioni_giornaliere, quantita_per_assunzione,
+                    unita_misura):#indicazioni d vedere se servono o le mettiamo in un secondo momento
+        
+        paziente = Paziente.get(utente=Utente.get(email=paziente_email))
+        medico   = Medico.get(utente=Utente.get(email=medico_email))
+        
+        if farmaco_nome not in [f.value for f in FarmacoEnum]:
+            raise ValueError(f"Farmaco '{farmaco_nome}' non valido")
+        
+        Terapia(
+            paziente=paziente,
+            medico=medico,
+            farmaco_nome=farmaco_nome,
+            data_inizio=data_inizio,
+            data_fine=data_fine,
+            assunzioni_giornaliere=assunzioni_giornaliere,
+            quantita_per_assunzione=quantita_per_assunzione,
+            unita_misura=unita_misura
+        )
+        commit()
+
+    @db_session                
+    def get_pazienti_medico(self, medico_email: str) -> list[dict]:
+        u = Utente.get(email=medico_email)
+        m = Medico.get(utente=u)
+        if not m:
+            return[]
+        return[
+            {
+                'email': p.utente.email,
+                'nome': p.utente.nome,
+                'cognome': p.utente.cognome,
+                'codice_fiscale': p.codice_fiscale,
+                'fumatore': p.fumatore,
+                'ex-fumatore': p.ex_fumatore,
+                'obesita': p.obesita,
+                'problemi_alcol': p.problemi_alcol,
+                'problemi_stupefacenti': p.problemi_stupefacenti
+            }
+            for p in m.pazienti
+        ]
     
     
     #-----------------------------------------------------------------------------
@@ -209,8 +278,9 @@ class OrmModel:
     
     # ---- operazioni Paziente ---------------------------------------------------
 
+    @db_session
     def get_my_doctor(self, patient_email):
-        p = Paziente.get(utente=patient_email)
+        p = Paziente.get(utente=Utente.get(email=patient_email))
         if p:
             m = p.medico_riferimento
             return {'email': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
@@ -312,5 +382,32 @@ class OrmModel:
                  'quantita_assunta': a.quantita_assunta}
                  for a in assunzioni_sorted]
 
+    #------ Chat -----------------------------------------------------------------  
+    @db_session
+    def invia_messaggio(self, mittente_email: str, destinatario_email: str, testo: str):
+        m = Utente.get(email=mittente_email)
+        d = Utente.get(email=destinatario_email)
+        if not m or not d:
+            raise ValueError("Utente non trovato")
+        Messaggio(mittente=m, destinatario=d, testo=testo)
+        commit()
+
+    @db_session
+    def get_conversazione(self, email_a: str, email_b: str) -> list[dict]:
+        a = Utente.get(email=email_a)
+        b = Utente.get(email=email_b)
+        if not a or not b:
+            return []
+        inviati = [m for m in a.messaggi_inviati if m.destinatario == b]
+        ricevuti = [m for m in a.messaggi_ricevuti if m.mittente == b]
+        messaggi = sorted(inviati + ricevuti, key=lambda m: m.timestamp)
+        return[
+            {
+                'mittente': m.mittente.email,
+                'testo': m.testo,
+                'timestamp': m.timestamp.strftime('%H:%M'),
+            }
+            for m in messaggi
+        ]
 
 model = OrmModel()
