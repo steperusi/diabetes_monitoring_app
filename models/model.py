@@ -5,7 +5,7 @@ ORM Model — tutte le operazioni dati via PonyORM + SQLite
 import os
 import pandas as pd
 from enum import Enum
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pony.orm import (Database, LongStr, Required, Optional, Set, PrimaryKey, db_session, select, commit, desc)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -100,7 +100,6 @@ class Assunzione(diabete_db.Entity):
     timestamp = Required(datetime, default=datetime)
     farmaco = Required(FarmacoEnum)
     quantita_assunta = Required(float)
-
     
 class Segnalazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -115,7 +114,6 @@ class Alert(diabete_db.Entity):
     informazioni = Required(LongStr)
     timestamp = Required(datetime, default=datetime.utcnow)
     letto = Required(bool, default=False)
-    
 
 class Messaggio(diabete_db.Entity):
     _table_ = 'messaggio'
@@ -331,7 +329,6 @@ class OrmModel:
     
     @db_session
     def get_misurazioni_ultimo_mese(self, patient_email, momento):
-        from datetime import timedelta
         p = Paziente.get(utente=patient_email)
         if not p:
             return []
@@ -371,10 +368,11 @@ class OrmModel:
         if isinstance(data_assunzione, str):
             data_assunzione = date.fromisoformat(data_assunzione)
             
-        # Crea o recupera il farmaco per nome
-        farmaco = FarmacoEnum.get(nome=nome_farmaco)
-        if not farmaco:
-            farmaco = FarmacoEnum(nome=nome_farmaco)
+        # Valida il farmaco
+        try:
+            farmaco = FarmacoEnum(nome_farmaco)
+        except ValueError:
+            farmaco = FarmacoEnum.ALTRO
             
         # Crea l'assunzione
         Assunzione(
@@ -401,7 +399,7 @@ class OrmModel:
         return [{'id': a.id,
                  'timestamp_hour': a.timestamp.hour,
                  'timestamp_minute': a.timestamp.minute,
-                 'farmaco_nome': a.farmaco.nome,
+                 'farmaco_nome': a.farmaco,
                  'quantita_assunta': a.quantita_assunta}
                  for a in assunzioni_sorted]
 

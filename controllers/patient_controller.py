@@ -1,7 +1,7 @@
 from dash import Output, Input, State, ctx, html, no_update
 import plotly.express as px
 from models.model import model
-from datetime import date
+from datetime import date, datetime
 
 MOMENTI = {
     'pre_colazione': 'p-meas-breakfast-before',
@@ -243,11 +243,12 @@ def register_callbacks(app):
         if segnalazioni:
             children = []
             for seg in segnalazioni:
+                dt = datetime.fromisoformat(seg['data_ora'])
                 children.append(
                     html.Div([
                         html.Div([
                             html.Strong(seg['titolo'], style={'fontSize': '15px', 'marginBottom': '5px'}),
-                            html.Span(f" — {seg['data_ora']}", style={'fontSize': '12px', 'color': '#888', 'marginLeft': '10px'}),
+                            html.Span(f" — {dt.strftime('%d-%m-%Y %H:%M')}", style={'fontSize': '12px', 'color': '#888', 'marginLeft': '10px'}),
                         ], style={'marginBottom': '5px'}),
                         html.P(seg['descrizione'], style={'margin': '5px 0', 'fontSize': '13px', 'color': '#333'}),
                     ], style={'paddingBottom': '10px', 'marginBottom': '10px', 'borderBottom': '1px solid #e0e0e0'})

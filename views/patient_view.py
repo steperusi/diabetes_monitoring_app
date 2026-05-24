@@ -1,5 +1,6 @@
 from dash import html, dcc
 from datetime import date
+from models.model import FarmacoEnum
 
 HEADER = {'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
           'padding': '10px 20px', 'backgroundColor': '#E8F4FD', 'fontFamily': 'sans-serif'}
@@ -44,9 +45,8 @@ def patient_layout(session):
                     html.Label('Seleziona data:', style={'fontWeight': 'bold', 'marginRight': '10px'}),
                     dcc.DatePickerSingle(id='p-date-picker', 
                                         date=date.today(),
-                                        display_format='DD/MM/YYYY',
-                                        style={'marginBottom': '20px'}),
-                ], style={'marginBottom': '20px'}),
+                                        display_format='DD/MM/YYYY'),
+                ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '20px'}),
                 
                 # Measurements and Medicines side-by-side
                 html.Div([
@@ -127,8 +127,12 @@ def patient_layout(session):
                                     style={'padding': '0 8px', 'fontWeight': 'bold', 'fontSize': '18px'}),
                                 dcc.Input(id=f'p-med-minute-{i}', type='number', min=0, max=59, step=1, placeholder='MM',
                                     style={'width': '60px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
-                                dcc.Input(id=f'p-med-name-{i}', type='text', placeholder='Es. Aspirina',
-                                         style={'padding': '5px', 'flex': '1', 'boxSizing': 'border-box', 'marginLeft': '10px', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
+                                dcc.Dropdown(
+                                    id=f'p-med-name-{i}',
+                                    options=[{'label': f.value, 'value': f.value} for f in FarmacoEnum],
+                                    placeholder='Seleziona farmaco',
+                                    style={'padding': '5px', 'flex': '1', 'boxSizing': 'border-box', 'marginLeft': '10px', 'minWidth': '100px'}
+                                ),
                                 dcc.Input(id=f'p-med-qty-{i}', type='text', placeholder='Es. 100',
                                          style={'padding': '5px', 'minWidth': '100px', 'width': '100px', 'boxSizing': 'border-box', 'marginLeft': '10px', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
                             ], style={'display': 'flex', 'gap': '0', 'marginBottom': '8px', 'alignItems': 'center'})
