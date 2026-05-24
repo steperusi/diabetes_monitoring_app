@@ -340,9 +340,9 @@ class OrmModel:
             data_assunzione = date.fromisoformat(data_assunzione)
             
         # Crea o recupera il farmaco per nome
-        farmaco = Farmaco.get(nome=nome_farmaco)
+        farmaco = FarmacoEnum.get(nome=nome_farmaco)
         if not farmaco:
-            farmaco = Farmaco(nome=nome_farmaco)
+            farmaco = FarmacoEnum(nome=nome_farmaco)
             
         # Crea l'assunzione
         Assunzione(
