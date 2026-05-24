@@ -252,8 +252,10 @@ def patient_layout(session):
 
             # Tab Terapia
             html.Div(id='p-tab-therapy', style=HIDE, children=[
-                html.P('Qui puoi vedere la tua terapia prescritta.'),
-                # (aggiungi dettagli terapia)
+                html.H4('La tua terapia'),
+                html.Div(id='p-therapy-container', children=[
+                    html.P('Caricamento terapie...', style={'color': '#888'}),
+                ]),
             ]),
 
             # Refresh interval

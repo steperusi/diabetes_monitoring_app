@@ -340,6 +340,26 @@ class OrmModel:
         misurazioni_sorted = sorted(misurazioni, key=lambda x: x.date)
         return [{'date': str(m.date), 'valore_mg_dl': m.valore_mg_dl}
                 for m in misurazioni_sorted]
+    
+    @db_session
+    def get_terapie_paziente(self, patient_email):
+        p = Paziente.get(utente=patient_email)
+        if not p:
+            return []
+        terapie = list(p.terapie)
+        return [
+            {
+                'id': t.id,
+                'farmaco_nome': t.farmaco_nome,
+                'data_inizio': str(t.data_inizio),
+                'data_fine': str(t.data_fine) if t.data_fine else 'In corso',
+                'assunzioni_giornaliere': t.assunzioni_giornaliere,
+                'quantita_per_assunzione': t.quantita_per_assunzione,
+                'unita_misura': t.unita_misura,
+                'indicazioni': t.indicazioni if t.indicazioni else 'Nessuna indicazione'
+            }
+            for t in terapie
+        ]
 
     # ---- operazioni Assunzioni -------------------------------------------------
     @db_session

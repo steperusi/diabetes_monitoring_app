@@ -356,3 +356,37 @@ def register_callbacks(app):
             figures.append(fig)
         
         return tuple(figures)
+    
+    # ---- Terapia callback --------------------------------------------------
+    @app.callback(
+        Output('p-therapy-container', 'children'),
+        Input('p-refresh', 'n_intervals'),
+        State('session', 'data'),
+    )
+    def load_terapie(_, session):
+        if not session:
+            return html.P('Nessuna sessione attiva.', style={'color': '#888'})
+        
+        terapie = model.get_terapie_paziente(session['email'])
+        
+        if not terapie:
+            return html.P('Nessuna terapia prescritta.', style={'color': '#888', 'fontStyle': 'italic'})
+        
+        terapie_elements = []
+        for terapia in terapie:
+            terapie_elements.append(
+                html.Div([
+                    html.Div([
+                        html.H5(terapia['farmaco_nome'], style={'margin': '0 0 10px 0', 'color': '#0066cc'}),
+                    ]),
+                    html.Div([
+                        html.P(f"Inizio: {terapia['data_inizio']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Fine: {terapia['data_fine']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Assunzioni giornaliere: {terapia['assunzioni_giornaliere']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Quantità per assunzione: {terapia['quantita_per_assunzione']} {terapia['unita_misura']}", style={'margin': '5px 0', 'fontSize': '13px'}),
+                        html.P(f"Indicazioni: {terapia['indicazioni']}", style={'margin': '5px 0', 'fontSize': '13px', 'color': '#666', 'fontStyle': 'italic'}),
+                    ]),
+                ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'marginBottom': '15px', 'backgroundColor': '#f9f9f9'})
+            )
+        
+        return html.Div(terapie_elements)
