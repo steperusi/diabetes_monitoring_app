@@ -191,8 +191,45 @@ def patient_layout(session):
 
             # Tab Analisi dati
             html.Div(id='p-tab-data', style=HIDE, children=[
-                html.P('Qui puoi vedere l\'analisi dei tuoi dati.'),
-                # (aggiungi grafico o tabella)
+                html.H4('Analisi dati dell\'ultimo mese'),
+                html.P('Andamento delle tue misurazioni per ogni momento della giornata:', 
+                       style={'fontSize': '14px', 'color': '#666', 'marginBottom': '20px'}),
+                
+                # Grid di 6 grafici (2 colonne, 3 righe)
+                html.Div([
+                    # Riga 1
+                    html.Div([
+                        html.Div([
+                            dcc.Graph(id='p-graph-pre-colazione')
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        html.Div([
+                            dcc.Graph(id='p-graph-post-colazione')
+                        ], style={'flex': '1', 'marginLeft': '10px'}),
+                    ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                    
+                    # Riga 2
+                    html.Div([
+                        html.Div([
+                            dcc.Graph(id='p-graph-pre-pranzo')
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        html.Div([
+                            dcc.Graph(id='p-graph-post-pranzo')
+                        ], style={'flex': '1', 'marginLeft': '10px'}),
+                    ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                    
+                    # Riga 3
+                    html.Div([
+                        html.Div([
+                            dcc.Graph(id='p-graph-pre-cena')
+                        ], style={'flex': '1', 'marginRight': '10px'}),
+                        html.Div([
+                            dcc.Graph(id='p-graph-post-cena')
+                        ], style={'flex': '1', 'marginLeft': '10px'}),
+                    ], style={'display': 'flex', 'height': '250px'}),
+                ], style={'display': 'flex', 'flexDirection': 'column'}),
+                
+                # Refresh interval
+                dcc.Interval(id='p-data-refresh', interval=5000),
             ]),
 
             # Tab Medico + Chat

@@ -328,6 +328,18 @@ class OrmModel:
         if m:
             return {'id': m.id, 'date': str(m.date), 'momento': m.momento, 'valore_mg_dl': m.valore_mg_dl}
         return None
+    
+    @db_session
+    def get_misurazioni_ultimo_mese(self, patient_email, momento):
+        from datetime import timedelta
+        p = Paziente.get(utente=patient_email)
+        if not p:
+            return []
+        data_limite = date.today() - timedelta(days=30)
+        misurazioni = [m for m in p.misurazioni if m.date >= data_limite and m.momento == momento]
+        misurazioni_sorted = sorted(misurazioni, key=lambda x: x.date)
+        return [{'date': str(m.date), 'valore_mg_dl': m.valore_mg_dl}
+                for m in misurazioni_sorted]
 
     # ---- operazioni Assunzioni -------------------------------------------------
     @db_session
