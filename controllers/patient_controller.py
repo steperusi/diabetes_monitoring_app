@@ -15,6 +15,32 @@ MOMENTI = {
 SHOW = {'display': 'block'}
 HIDE = {'display': 'none'}
 
+def _render_chat_patient(msgs: list, my_email: str):
+    if not msgs:
+        return html.P('Nessun messaggio.', style={'color': '#9ca3af', 'fontSize': '14px'})
+    bubbles = []
+    for m in msgs:
+        is_mine = m['mittente'] == my_email
+        bubbles.append(
+            html.Div([
+                html.Div(m['testo'], style={
+                    'background': '#0066cc' if is_mine else '#f3f4f6',
+                    'color': 'white' if is_mine else '#1f2937',
+                    'borderRadius': '12px', 'padding': '8px 14px',
+                    'maxWidth': '70%', 'fontSize': '14px',
+                }),
+                html.Div(m['timestamp'], style={
+                    'fontSize': '11px', 'color': '#9ca3af', 'marginTop': '2px',
+                }),
+            ], style={
+                'display': 'flex', 'flexDirection': 'column',
+                'alignItems': 'flex-end' if is_mine else 'flex-start',
+                'marginBottom': '10px',
+            })
+        )
+    return html.Div(bubbles)
+        
+
 
 def register_callbacks(app):
     
@@ -203,7 +229,51 @@ def register_callbacks(app):
             return f'Salvati con successo ({total_saved}/{total_saved + total_errors})'
         else:
             return 'Errore nel salvataggio dei dati.'
-    
+        
+
+    # ---- Chat paziente ----------------------------------------------------------ù
+    @app.callback(
+            Output('p-doc-info', 'children'),
+            Output('p-chat-box', 'children'),
+            Output('p-chat-input', 'value'),
+            Output('p-chat-status', 'children'),
+            Input('p-chat-send', 'n_clicks'),
+            Input('p-refresh', 'n_intervals'),
+            State('p-chat-input', 'value'),
+            State('session', 'data'),
+    )
+    def update_chat(send_n, _, msg_text, session):
+        if not session:
+            return 'Nessun medico assegnato', html.P('Caricamento...'), '', ''
+        
+        trigger = ctx.triggered_id
+        status = ''
+        patient_email = session['email']
+
+        #info medico
+        medico = model.get_my_doctor(patient_email)
+        doc_info = (html.P(f"Dr.{medico['nome']}", style={'fontWeight': '600', 'fontSize': '15px'})
+                    if medico else html.P('Nessun medico assegnato.', style={'color': '#9ca3af'}))
+
+        if not medico:
+            return doc_info, html.P('Nessun medico trovato.'), '', ''
+        medic_email = medico['email']
+
+        #Invia messaggio
+        if trigger == 'p-chat-send' and msg_text:
+            try:
+                model.invia_messaggio(patient_email, medic_email, msg_text)
+                status = '✅ Inviato.'
+            except Exception as e:
+                status = f'❌ Errore: {str(e)}'
+
+        #Carica conversazione
+        msgs = model.get_conversazione(patient_email, medic_email)
+        chat = _render_chat_patient(msgs, patient_email)
+
+        new_input = '' if trigger == 'p-chat-send' else no_update
+        return doc_info, chat, new_input, status
+
     # ---- Segnalazioni callback --------------------------------------------------
     @app.callback(
         Output('p-segnalazione-message', 'children'),
