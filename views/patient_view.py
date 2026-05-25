@@ -76,6 +76,7 @@ def daily_measurements():
             dcc.Input(id='p-meas-breakfast-before', type='number', 
                         placeholder='Es. 120', 
                         style={'padding': '5px', 'width': '65%'}),
+            html.Span(id='p-meas-status-breakfast-before', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
         
         # Post Colazione
@@ -84,6 +85,7 @@ def daily_measurements():
             dcc.Input(id='p-meas-breakfast-after', type='number', 
                         placeholder='Es. 180', 
                         style={'padding': '5px', 'width': '65%'}),
+            html.Span(id='p-meas-status-breakfast-after', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Pre Pranzo
@@ -92,6 +94,7 @@ def daily_measurements():
             dcc.Input(id='p-meas-lunch-before', type='number', 
                         placeholder='Es. 120', 
                         style={'padding': '5px', 'width': '65%'}),
+            html.Span(id='p-meas-status-lunch-before', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Post Pranzo
@@ -100,6 +103,7 @@ def daily_measurements():
             dcc.Input(id='p-meas-lunch-after', type='number', 
                         placeholder='Es. 180', 
                         style={'padding': '5px', 'width': '65%'}),
+            html.Span(id='p-meas-status-lunch-after', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Pre Cena
@@ -108,6 +112,7 @@ def daily_measurements():
             dcc.Input(id='p-meas-dinner-before', type='number', 
                         placeholder='Es. 120', 
                         style={'padding': '5px', 'width': '65%'}),
+            html.Span(id='p-meas-status-dinner-before', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Post Cena
@@ -116,6 +121,7 @@ def daily_measurements():
             dcc.Input(id='p-meas-dinner-after', type='number', 
                         placeholder='Es. 180', 
                         style={'padding': '5px', 'width': '65%'}),
+            html.Span(id='p-meas-status-dinner-after', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
     ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '1', 'marginRight': '15px'})
 
@@ -128,28 +134,38 @@ def daily_medicine_assumptions():
         # Header row
         html.Div([
             html.Div('Ora', style={'fontWeight': 'bold', 'flex': '0 0 25%', 'textAlign': 'center'}),
-            html.Div('Farmaco', style={'fontWeight': 'bold', 'flex': '0 0 45%', 'textAlign': 'center'}),
-            html.Div('Quantità', style={'fontWeight': 'bold', 'flex': '0 0 25%', 'textAlign': 'center'}),
-        ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '10px', 'paddingBottom': '10px', 'borderBottom': '2px solid #ddd'}),
+            html.Div('Farmaco', style={'fontWeight': 'bold', 'flex': '0 0 52.5%', 'textAlign': 'center'}),
+            html.Div('Quantità', style={'fontWeight': 'bold', 'flex': '0 0 12.5%', 'textAlign': 'center'}),
+            html.Div('Stato', style={'fontWeight': 'bold', 'flex': '0 0 10%', 'textAlign': 'center'}),
+        ], style={'display': 'flex', 'gap': '3px', 'marginBottom': '10px', 'paddingBottom': '10px', 'borderBottom': '2px solid #ddd'}),
         
         # Medicine entries (placeholder for 5 rows)
         html.Div([
             html.Div([
-                dcc.Input(id=f'p-med-hour-{i}', type='number', min=0, max=23, step=1, placeholder='HH',
-                    style={'width': '60px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
-                html.Span(':',
-                    style={'padding': '0 8px', 'fontWeight': 'bold', 'fontSize': '18px'}),
-                dcc.Input(id=f'p-med-minute-{i}', type='number', min=0, max=59, step=1, placeholder='MM',
-                    style={'width': '60px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
-                dcc.Dropdown(
-                    id=f'p-med-name-{i}',
-                    options=[{'label': f.value, 'value': f.value} for f in FarmacoEnum],
-                    placeholder='Seleziona farmaco',
-                    style={'padding': '5px', 'flex': '1', 'boxSizing': 'border-box', 'marginLeft': '10px', 'minWidth': '100px'}
-                ),
-                dcc.Input(id=f'p-med-qty-{i}', type='text', placeholder='Es. 100',
-                            style={'padding': '5px', 'minWidth': '100px', 'width': '100px', 'boxSizing': 'border-box', 'marginLeft': '10px', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
-            ], style={'display': 'flex', 'gap': '0', 'marginBottom': '8px', 'alignItems': 'center'})
+                html.Div([
+                    dcc.Input(id=f'p-med-hour-{i}', type='number', min=0, max=23, step=1, placeholder='HH',
+                        style={'width': '45px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
+                    html.Span(':',
+                        style={'padding': '0 4px', 'fontWeight': 'bold', 'fontSize': '18px'}),
+                    dcc.Input(id=f'p-med-minute-{i}', type='number', min=0, max=59, step=1, placeholder='MM',
+                        style={'width': '45px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
+                ], style={'display': 'flex', 'alignItems': 'center', 'flex': '0 0 25%', 'justifyContent': 'center', 'gap': '2px'}),
+                html.Div([
+                    dcc.Dropdown(
+                        id=f'p-med-name-{i}',
+                        options=[{'label': f.value, 'value': f.value} for f in FarmacoEnum],
+                        placeholder='Seleziona',
+                        style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'fontSize': '13px'}
+                    )
+                ], style={'flex': '0 0 52.5%', 'paddingX': '2px'}),
+                html.Div([
+                    dcc.Input(id=f'p-med-qty-{i}', type='text', placeholder='Es. 100',
+                        style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'border': '1px solid #ddd', 'borderRadius': '4px'})
+                ], style={'flex': '0 0 12.5%', 'paddingX': '2px'}),
+                html.Div([
+                    html.Span(id=f'p-med-status-{i}', style={'fontSize': '18px', 'width': '100%', 'textAlign': 'center'})
+                ], style={'flex': '0 0 10%', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
+            ], style={'display': 'flex', 'gap': '3px', 'marginBottom': '8px', 'alignItems': 'center'})
             for i in range(5)
         ], style={'maxHeight': '200px', 'overflowY': 'auto'}),
     ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '1'})

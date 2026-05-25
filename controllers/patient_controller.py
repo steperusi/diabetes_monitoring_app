@@ -39,6 +39,52 @@ def _render_chat_patient(msgs: list, my_email: str):
             })
         )
     return html.Div(bubbles)
+
+
+def _validate_measurement(value, momento_type):
+    if value is None:
+        return '-', '#9ca3af'  # gray for empty
+    
+    try:
+        val = float(value)
+    except (ValueError, TypeError):
+        return '-', '#9ca3af'
+    
+    # Pre-meals: 80-130 mg/dl is good
+    if 'pre_' in momento_type:
+        if 80 <= val <= 130:
+            return '✓', '#22c55e'  # green
+        else:
+            return '✗', '#ef4444'  # red
+    # Post-meals: <= 180 mg/dl is good
+    else:
+        if val <= 180:
+            return '✓', '#22c55e'  # green
+        else:
+            return '✗', '#ef4444'  # red
+
+
+def _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity):
+    """
+    Validates a medicine entry.
+    Returns: ('✓', 'green') for valid, ('✗', 'red') for invalid, ('-', 'gray') for empty
+    """
+    # If any field is empty, return gray
+    if hour is None or minute is None or not medicine_name or not quantity:
+        return '-', '#9ca3af'  # gray for empty
+    
+    try:
+        # Get patient's therapies
+        terapie = model.get_terapie_paziente(session_email)
+        terapia_farmaci = [t['farmaco_nome'] for t in terapie]
+        
+        # Check if the medicine is in the therapy list
+        if str(medicine_name).strip() in terapia_farmaci:
+            return '✓', '#22c55e'  # green
+        else:
+            return '✗', '#ef4444'  # red
+    except:
+        return '✗', '#ef4444'  # red if error
         
 
 
@@ -57,6 +103,48 @@ def register_callbacks(app):
                 SHOW if tab == 'data' else HIDE,
                 SHOW if tab == 'doctor' else HIDE,
                 SHOW if tab == 'therapy' else HIDE)
+    
+    # ---- Measurements status indicators ------------------------------------------
+    measurement_fields = [
+        ('breakfast_before', 'pre_colazione'),
+        ('breakfast_after', 'post_colazione'),
+        ('lunch_before', 'pre_pranzo'),
+        ('lunch_after', 'post_pranzo'),
+        ('dinner_before', 'pre_cena'),
+        ('dinner_after', 'post_cena'),
+    ]
+    
+    def create_meas_callback(field_name, momento_type):
+        @app.callback(
+            Output(f'p-meas-status-{field_name}', 'children'),
+            Output(f'p-meas-status-{field_name}', 'style'),
+            Input(f'p-meas-{field_name}', 'value'),
+        )
+        def update_meas_status(value):
+            symbol, color = _validate_measurement(value, momento_type)
+            return symbol, {'fontSize': '18px', 'color': color}
+        return update_meas_status
+    
+    for field_name, momento_type in measurement_fields:
+        create_meas_callback(field_name, momento_type)
+    
+    # ---- Medicine status indicators ------------------------------------------
+    for i in range(5):
+        @app.callback(
+            Output(f'p-med-status-{i}', 'children'),
+            Output(f'p-med-status-{i}', 'style'),
+            Input(f'p-med-hour-{i}', 'value'),
+            Input(f'p-med-minute-{i}', 'value'),
+            Input(f'p-med-name-{i}', 'value'),
+            Input(f'p-med-qty-{i}', 'value'),
+            State('session', 'data'),
+        )
+        def update_med_status(hour, minute, name, qty, session, row_index=i):
+            if not session:
+                return '', {'fontSize': '18px', 'color': '#9ca3af'}
+            
+            symbol, color = _validate_medicine_entry(session['email'], hour, minute, name, qty)
+            return symbol, {'fontSize': '18px', 'color': color}
     
     # ---- Misurazioni callback --------------------------------------------------
     @app.callback(
