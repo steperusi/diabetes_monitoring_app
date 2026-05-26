@@ -1,9 +1,9 @@
 """Controller — callbacks del medico."""
 
-from dash import Output, Input, State, ctx, no_update, html
+from dash import Output, Input, State, ctx, no_update, html, ALL
 from models.model import model, Terapia, Paziente, Medico
 from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, messages_tab, _render_chat
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, messages_tab, _render_chat, edit_patient_tab
 
 
 def register_callbacks(app):
@@ -117,3 +117,70 @@ def register_callbacks(app):
 
         new_input = '' if trigger == 'm-btn-send' else no_update
         return options, chat, new_input, status
+    
+    # ----- modifica paziente -------------------------------------------------
+    @app.callback(
+        Output('m-tab-content', 'children', allow_duplicate=True),
+        Input({'type': 'btn-edit-patient', 'index': ALL}, 'n_clicks'),
+        prevent_initial_call=True,
+    )
+    def open_edit_form(n_clicks_list):
+        #trova quale bottone è stato premuto
+        triggered = ctx.triggered_id
+        if not triggered or not any(n for n in n_clicks_list if n):
+            return no_update
+        cf = triggered['index']
+        paziente = model.get_paziente_by_cf(cf)
+        if not paziente:
+            return no_update
+        return edit_patient_tab(paziente)
+    
+
+    # ----- salva modifiche paziente -----------------------------------------
+    @app.callback(
+        Output('msg-edit-patient', 'children'),
+        Output('msg-edit-patient', 'style'),
+        Input('btn-save-edit-patient', 'n_clicks'),
+        State('editing-patient-cf', 'data'),
+        State('edit-p-nome', 'value'),
+        State('edit-p-cognome', 'value'),
+        State('edit-p-comorbidita', 'value'),
+        State('edit-p-flags', 'value'),
+        prevent_initial_call=True,
+    )
+    def save_edit_patient(n, cf, nome, cognome, comorbidita, flags):
+        if not n or not cf:
+            return '', {}
+        flags = flags or []
+        missing = [f for f, v in [('Nome', nome), ('Cognome', cognome),] if not v]
+        if missing:
+            return (f'⚠️ Campi obbligatori mancanti: {", ".join(missing)}.',{'color': '#dc2626', 'fontSize': '13px'})
+        try:
+            model.modifica_paziente(
+                codice_fiscale = cf,
+                nome=nome,
+                cognome=cognome,
+                fumatore='fumatore' in flags,
+                ex_fumatore='ex_fumatore' in flags,
+                obesita='obesita' in flags,
+                problemi_alcol='problemi_alcol' in flags,
+                problemi_stupefacenti='problemi_stupefacenti' in flags,
+                comorbidita=comorbidita or '',
+            )
+            return ('✅ Modifiche salvate con successo.', {'color': '#16a34a', 'fontSize': '13px'})
+        except Exception as e:
+            return (f'❌ Errore: {str(e)}', {'color': '#dc2626', 'fontSize': '13px'})
+        
+    # ----- tasto indietro torna alla lista --------------------------------------------
+    @app.callback(
+        Output('m-tab-content', 'children', allow_duplicate=True),
+        Output('m-main-tabs', 'value'),
+        Input('btn-back-patients', 'n_clicks'),
+        State('medic-email', 'data'),
+        prevent_initial_call=True,
+    )
+    def back_to_patients(n,email):
+        if not n:
+            return no_update, no_update
+        pazienti = model.get_pazienti_medico(email)
+        return my_patients_tab(pazienti), 'patients'

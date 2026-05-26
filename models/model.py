@@ -260,6 +260,39 @@ class OrmModel:
             for p in m.pazienti
         ]
     
+    @db_session
+    def get_paziente_by_cf(self, codice_fiscale: str) -> dict:
+        p = Paziente.get(codice_fiscale=codice_fiscale)
+        if not p:
+            return {}
+        return {
+            'email': p.utente.email,
+            'nome': p.utente.nome,
+            'cognome': p.utente.cognome,
+            'codice_fiscale': p.codice_fiscale,
+            'fumatore': p.fumatore,
+            'ex-fumatore': p.ex_fumatore,
+            'obesita': p.obesita,
+            'problemi_alcol': p.problemi_alcol,
+            'problemi_stupefacenti': p.problemi_stupefacenti,
+            'comorbidita': p.comorbidita or '',
+        }
+    
+    @db_session
+    def modifica_paziente(self, codice_fiscale:str, nome:str, cognome:str, fumatore:bool, ex_fumatore:bool,
+                           obesita:bool, problemi_alcol:bool, problemi_stupefacenti:bool, comorbidita:str):
+        p=Paziente.get(codice_fiscale=codice_fiscale)
+        if not p:
+            raise ValueError('Paziente non trovato')
+        p.utente.nome = nome
+        p.utente.cognome = cognome
+        p.fumatore = fumatore
+        p.ex_fumatore = ex_fumatore
+        p.obesita = obesita
+        p.problemi_alcol = problemi_alcol
+        p.problemi_stupefacenti = problemi_stupefacenti
+        p.coborbidita = comorbidita
+        commit()
     
     #-----------------------------------------------------------------------------
     

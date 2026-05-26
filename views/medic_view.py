@@ -153,7 +153,7 @@ def _field(label: str, input_id: str, placeholder: str = '',
 
 def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
-               'Obesità', 'Alcolista', 'Stupefacenti']
+               'Obesità', 'Alcolista', 'Stupefacenti', '']
     rows = []
     for i, p in enumerate(pazienti):
         style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
@@ -166,6 +166,10 @@ def my_patients_tab(pazienti: list) -> html.Div:
             _badge(p['obesita']),
             _badge(p['problemi_alcol']),
             _badge(p['problemi_stupefacenti']),
+            html.Button('✏️', id={'type': 'btn-edit-patient', 'index': p['codice_fiscale']}, n_clicks=0, style={
+                'bacbground': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
+                'padding': '2px 8px', 'fontSize': '14px',
+            }),
         ], style))
     return html.Div([
         html.Div(style={'display': 'flex', 'justifyContent': 'space-between',
@@ -188,6 +192,96 @@ def my_patients_tab(pazienti: list) -> html.Div:
                   'border': '1px solid #e5e7eb'}),
     ], style=CARD)
    
+def edit_patient_tab(paziente: dict) -> html.Div:
+    """Form di modifica paziente, precompilato con i dati esistenti."""
+    flags_attuali=[]
+    if paziente.get('fumatore'):                    flags_attuali.append('fumatore')
+    if paziente.get('ex_fumatore'):                 flags_attuali.append('ex_fumatore')
+    if paziente.get('obesita'):                     flags_attuali.append('obesita')
+    if paziente.get('problemi_alcol'):              flags_attuali.append('problemi_alcol')
+    if paziente.get('problemi_stupefacenti'):       flags_attuali.append('problemi_stupefacenti')
+
+    return html.Div([
+        # Tasto per tornare indietro
+        html.Button('← Torna alla lista', id='btn-back-patients', n_clicks=0,
+                    style={'background': 'none', 'border': 'none', 'color': '#4748AC',
+                           'fontWeight': '600', 'cursor': 'pointer', 'fontSize': '14px',
+                           'marginBottom': '16px', 'padding': '0'}),
+
+        html.Div('Modifica Paziente', style=SECTION_TITLE),
+        html.Div(f"Stai modificando: {paziente.get('nome')} {paziente.get('cognome')}",
+                 style=SECTION_SUBTITLE),
+
+        html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr',
+                        'gap': '0 24px', 'marginTop': '20px'}, children=[
+                html.Div([
+                        html.Label('Nome *', style=LABEL_STYLE),
+                        dcc.Input(id='edit-p-nome', type='text',
+                                value=paziente.get('nome', ''),
+                                style=INPUT_STYLE),
+                    ]),
+                    html.Div([
+                        html.Label('Cognome *', style=LABEL_STYLE),
+                        dcc.Input(id='edit-p-cognome', type='text',
+                                value=paziente.get('cognome', ''),
+                                style=INPUT_STYLE),
+                    ]),
+        ]),
+
+        # Campi di sola lettura (non modificabili)
+        html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr',
+                        'gap': '0 24px'}, children=[
+            html.Div([
+                html.Label('Email (non modificabile)', style=LABEL_STYLE),
+                html.Div(paziente.get('email', '—'),
+                         style={**INPUT_STYLE, 'background': '#f3f4f6',
+                                'color': '#9ca3af', 'cursor': 'not-allowed'}),
+            ]),
+            html.Div([
+                html.Label('Codice Fiscale (non modificabile)', style=LABEL_STYLE),
+                html.Div(paziente.get('codice_fiscale', '—'),
+                         style={**INPUT_STYLE, 'background': '#f3f4f6',
+                                'color': '#9ca3af', 'cursor': 'not-allowed'}),
+            ]),
+        ]),
+
+        # Comorbidità
+        html.Div([
+            html.Label('Comorbidità', style=LABEL_STYLE),
+            dcc.Textarea(id='edit-p-comorbidita',
+                         value=paziente.get('comorbidita', ''),
+                         placeholder='Es. ipertensione, insufficienza renale…',
+                         style={**INPUT_STYLE, 'minHeight': '80px',
+                                'fontFamily': '"Inter", "Segoe UI", sans-serif'}),
+        ], style={'marginTop': '8px'}),
+
+        # Fattori di rischio
+        html.Div([
+            html.Label('Fattori di rischio', style={**LABEL_STYLE, 'marginBottom': '10px'}),
+            dcc.Checklist(
+                id='edit-p-flags',
+                options=[
+                    {'label': '  Fumatore',                   'value': 'fumatore'},
+                    {'label': '  Ex fumatore',                'value': 'ex_fumatore'},
+                    {'label': '  Obesità',                    'value': 'obesita'},
+                    {'label': '  Problemi con alcol',         'value': 'problemi_alcol'},
+                    {'label': '  Dipendenza da stupefacenti', 'value': 'problemi_stupefacenti'},
+                ],
+                value=flags_attuali,
+                inputStyle={'marginRight': '8px'},
+                labelStyle={'display': 'flex', 'alignItems': 'center',
+                            'fontSize': '14px', 'color': '#374151', 'padding': '6px 0'},
+            ),
+        ], style={'marginTop': '16px', 'marginBottom': '16px', 'padding': '16px',
+                  'borderRadius': '10px', 'border': '1px solid #e5e7eb',
+                  'backgroundColor': '#f9fafb'}),
+
+        html.Div(id='msg-edit-patient', style={'marginTop': '8px', 'fontSize': '13px'}),
+        html.Button('Salva Modifiche', id='btn-save-edit-patient', n_clicks=0, style=BTN_PRIMARY),
+
+        # Store con il CF del paziente in modifica
+        dcc.Store(id='editing-patient-cf', data=paziente.get('codice_fiscale')),
+    ], style=CARD)
     
 @db_session
 def manage_therapy_tab(email: str):
