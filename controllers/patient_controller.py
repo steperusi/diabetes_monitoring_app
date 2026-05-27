@@ -340,13 +340,15 @@ def register_callbacks(app):
 
         #info medico
         medico = model.get_my_doctor(patient_email)
-        doc_info = (html.P(f"Dr.{medico['nome']}", style={'fontWeight': '600', 'fontSize': '15px'})
+        doc_info = (html.P(f"Dr. {medico['nome']}", style={'fontWeight': '600', 'fontSize': '15px'})
                     if medico else html.P('Nessun medico assegnato.', style={'color': '#9ca3af'}))
+        doc_email = (html.P(medico['email'], style={'fontSize': '14px', 'color': '#555'})
+                    if medico else html.P(''))
 
         if not medico:
             return doc_info, html.P('Nessun medico trovato.'), '', ''
+        
         medic_email = medico['email']
-
         #Invia messaggio
         if trigger == 'p-chat-send' and msg_text:
             try:
@@ -426,10 +428,10 @@ def register_callbacks(app):
         Output('p-graph-pre-cena', 'figure'),
         Output('p-graph-post-cena', 'figure'),
         Input('p-data-refresh', 'n_intervals'),
-        State('session', 'data'),
+        State('session-email', 'data'),
     )
-    def update_misurazioni_graphs(_, session):
-        if not session:
+    def update_misurazioni_graphs(_, email):
+        if not email:
             # Restituisci 6 grafici vuoti
             empty_fig = px.line(title='Nessun dato')
             return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
@@ -445,7 +447,7 @@ def register_callbacks(app):
         
         figures = []
         for momento_key, momento_label in momenti.items():
-            misurazioni = model.get_misurazioni_ultimo_mese(session['email'], momento_key)
+            misurazioni = model.get_misurazioni_ultimo_mese(email, momento_key)
             
             if misurazioni:
                 dates = [m['date'] for m in misurazioni]

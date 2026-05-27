@@ -289,6 +289,7 @@ def medic_and_chat():
         html.Div([
             html.Div('Il tuo Medico', style=SECTION_TITLE),
             html.Div(id='p-doc-info', style = SECTION_SUBTITLE),
+            html.Div(id='p-doc-email', style = SECTION_SUBTITLE),
         ]),
         html.Div([
             html.Div('Messaggi', style=SECTION_TITLE),
@@ -340,5 +341,7 @@ def patient_layout(session):
 
             # Refresh interval
             dcc.Interval(id='p-refresh', interval=5000),
+            # Store email in session storage for callbacks
+            dcc.Store(id='session-email', storage_type='session', data=session['email']),
         ], style=CONTAINER),
     ])
