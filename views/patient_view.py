@@ -5,7 +5,7 @@ from pony.orm import db_session
 
 HEADER = {
     'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
-    'padding': '16px 32px',
+    'padding': '16px 16px',
     'background': 'linear-gradient(90deg, #8284D9 0%, #3C3CEC 100%)',
     'color': 'white', 'fontFamily': '"Inter", "Segoe UI", sans-serif',
     'fontSize': '16px', 'fontWeight': '600',
@@ -49,7 +49,8 @@ INPUT_STYLE = {
 def patient_header(session):
     name = session['display_name']
     return html.Div([
-            html.H3('Diabetes Control Center', style={'margin': '0'}),
+            html.Img(src='/assets/full_logo.png', alt='Icona', style={'height': '80px', 'borderRadius': '12px'}),
+            html.H2('Paziente', style={'margin': '0 15px', 'color': 'white'}),
             html.Div([
                 html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
                 html.Button('Logout', id='btn-logout', n_clicks=0,
