@@ -170,10 +170,7 @@ class OrmModel:
         Farmaco(nome='ALTRO', unita_misura="N/D")
         commit()
 
-
-    
     # ---- autenticazione -----------------------------------------------------
-
     #serve quando sono in fase di login - verifica credenziali
     @db_session
     def authenticate(self, email, password):
@@ -314,11 +311,7 @@ class OrmModel:
         p.problemi_alcol = problemi_alcol
         p.problemi_stupefacenti = problemi_stupefacenti
         p.comorbidita = comorbidita
-        commit()
-    
-    #-----------------------------------------------------------------------------
-    
-    
+        commit() 
     
     # ---- operazioni Paziente ---------------------------------------------------
 
