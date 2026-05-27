@@ -44,7 +44,7 @@ def register_callbacks(app):
         if not n:
             return '', {}
         missing = [f for f, v in [('Paziente', p_email), ('Nome Farmaco', f_nome),
-                                   ('Data Inizio', data_inizio), ('Data Fine', data_fine),
+                                   ('Data Inizio', data_inizio),
                                    ('Assunzioni Giornaliere', assunzioni_giornaliere),
                                    ('Quantità per Assunzione', quantita_per_assunzione),
                                    ('Unità di Misura', unita_misura)] if not v]
@@ -57,7 +57,7 @@ def register_callbacks(app):
                 medico_email=m_email,
                 farmaco_nome=f_nome,
                 data_inizio=data_inizio,
-                data_fine=data_fine,
+                data_fine=data_fine or None,
                 assunzioni_giornaliere=assunzioni_giornaliere,
                 quantita_per_assunzione=quantita_per_assunzione,
                 unita_misura=unita_misura

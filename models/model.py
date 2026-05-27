@@ -255,7 +255,8 @@ class OrmModel:
                 'ex-fumatore': p.ex_fumatore,
                 'obesita': p.obesita,
                 'problemi_alcol': p.problemi_alcol,
-                'problemi_stupefacenti': p.problemi_stupefacenti
+                'problemi_stupefacenti': p.problemi_stupefacenti,
+                'comorbidita': p.comorbidita or ''
             }
             for p in m.pazienti
         ]
@@ -291,7 +292,7 @@ class OrmModel:
         p.obesita = obesita
         p.problemi_alcol = problemi_alcol
         p.problemi_stupefacenti = problemi_stupefacenti
-        p.coborbidita = comorbidita
+        p.comorbidita = comorbidita
         commit()
     
     #-----------------------------------------------------------------------------
