@@ -1,6 +1,7 @@
 from dash import html, dcc
 from datetime import date
-from models.model import FarmacoEnum
+from models.model import Farmaco
+from pony.orm import db_session
 
 HEADER = {
     'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
@@ -125,6 +126,7 @@ def daily_measurements():
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
     ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '1', 'marginRight': '15px'})
 
+@db_session
 def daily_medicine_assumptions():
     return html.Div([
         html.H4('Assunzione farmaci'),
@@ -153,7 +155,7 @@ def daily_medicine_assumptions():
                 html.Div([
                     dcc.Dropdown(
                         id=f'p-med-name-{i}',
-                        options=[{'label': f.value, 'value': f.value} for f in FarmacoEnum],
+                        options=[{'label': f.nome, 'value': f.nome} for f in Farmaco.select()],
                         placeholder='Seleziona',
                         style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'fontSize': '13px'}
                     )

@@ -12,15 +12,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 diabete_db = Database()
 
+class Farmaco(diabete_db.Entity):
+    _table_ = 'farmaco'
+    nome = PrimaryKey(str)
+    unita_misura = Required(str)
 
-class FarmacoEnum(str, Enum):
-    METFORMINA      = "Metformina"
-    INSULINA_RAPIDA = "Insulina rapida"
-    INSULINA_LENTA  = "Insulina lenta"
-    GLIPIZIDE       = "Glipizide"
-    SITAGLIPTIN     = "Sitagliptin"
-    EMPAGLIFLOZIN   = "Empagliflozin"
-    ALTRO           = "Altro"
+    terapie = Set('Terapia')
+    assunzioni = Set('Assunzione')
+    assunzioni_terapia = Set('Assunzioni_terapia')
 
 
 class Utente(diabete_db.Entity):
@@ -72,20 +71,25 @@ class Paziente(diabete_db.Entity):
     segnalazioni = Set('Segnalazione')
     terapie = Set('Terapia')
 
-    
 class Terapia(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
     medico = Required(Medico)
-    farmaco_nome = Required(str)
     data_inizio = Required(date)
     data_fine = Optional(date)
-    assunzioni_giornaliere = Required(int)
-    quantita_per_assunzione = Required(float)
-    unita_misura = Required(str)
+    assunzioni_giornaliere = Set('Assunzioni_terapia')
     indicazioni = Optional(LongStr)
     #attiva = Required(bool, default=True)
     #data_ultimo_alert = Optional(datetime)
+    farmaco = Set('Farmaco', reverse='terapie')
+
+class Assunzioni_terapia(diabete_db.Entity):
+    id = PrimaryKey(int, auto=True)
+    terapia = Required(Terapia)
+    orario = Required(str)
+    farmaco_nome = Required(Farmaco)
+    quantita = Required(float)
+    unita_misura = Required(str)
     
 class Misurazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -98,9 +102,10 @@ class Assunzione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
     timestamp = Required(datetime, default=datetime)
-    farmaco = Required(FarmacoEnum)
+    farmaco = Required(Farmaco)
     quantita_assunta = Required(float)
-    
+    unita_misura = Required(str)
+
 class Segnalazione(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
@@ -133,6 +138,7 @@ class OrmModel:
         diabete_db.generate_mapping(create_tables=True)
         
         self._seed_users()
+        self.seed_farmaci()
 
     
     @db_session
@@ -150,6 +156,21 @@ class OrmModel:
         Paziente(utente=u_paz, medico_riferimento=Medico.get(utente=u_med), codice_fiscale='VRDMRC80A01H501A')
         
         commit()
+    
+    @db_session
+    def seed_farmaci(self):
+        if Farmaco.select().count() > 0:
+            return
+        Farmaco(nome='Metmorfina', unita_misura="mg")
+        Farmaco(nome='Insulina_Rapida', unita_misura="UI")
+        Farmaco(nome='Insulina_Lenta', unita_misura="UI")
+        Farmaco(nome='Glipizide', unita_misura="mg")
+        Farmaco(nome='Sitagliptin', unita_misura="mg")
+        Farmaco(nome='Empagliflozin', unita_misura="mg")
+        Farmaco(nome='ALTRO', unita_misura="N/D")
+        commit()
+
+
     
     # ---- autenticazione -----------------------------------------------------
 
@@ -224,7 +245,7 @@ class OrmModel:
         paziente = Paziente.get(utente=Utente.get(email=paziente_email))
         medico   = Medico.get(utente=Utente.get(email=medico_email))
         
-        if farmaco_nome not in [f.value for f in FarmacoEnum]:
+        if farmaco_nome not in [f.value for f in Farmaco]:
             raise ValueError(f"Farmaco '{farmaco_nome}' non valido")
         
         Terapia(
@@ -404,9 +425,9 @@ class OrmModel:
             
         # Valida il farmaco
         try:
-            farmaco = FarmacoEnum(nome_farmaco)
+            farmaco = Farmaco(nome_farmaco)
         except ValueError:
-            farmaco = FarmacoEnum.ALTRO
+            farmaco = Farmaco.ALTRO
             
         # Crea l'assunzione
         Assunzione(

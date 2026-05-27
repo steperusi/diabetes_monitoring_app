@@ -1,7 +1,7 @@
 """View del medico."""
 
 from dash import html, dcc
-from models.model import model, Paziente, Medico, Terapia, Utente, FarmacoEnum
+from models.model import model, Paziente, Medico, Terapia, Utente, Farmaco
 from pony.orm import db_session, select
 
 # ── Stili ─────────────────────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ def add_therapy_tab(email: str):
         for p in list(Paziente.select())
     ]
     farmaci_options = [
-        {'label': f.value, 'value': f.value} for f in FarmacoEnum
+        {'label': f.value, 'value': f.value} for f in Farmaco
     ]
 
     return html.Div([
