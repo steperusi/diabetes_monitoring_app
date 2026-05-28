@@ -622,33 +622,60 @@ def register_callbacks(app):
     # ---- Terapia callback --------------------------------------------------
     @app.callback(
         Output('p-therapy-container', 'children'),
+        Output('store-terapie-loaded', 'data'),
         Input('p-refresh', 'n_intervals'),
+        State('store-terapie-loaded', 'data'),
         State('session', 'data'),
     )
-    def load_terapie(_, session):
+    def load_terapie(_, already_loaded, session):
+        if already_loaded:
+            return no_update, no_update
         if not session:
             return html.P('Nessuna sessione attiva.', style={'color': '#888'})
-        
+
         terapie = model.get_terapie_paziente(session['email'])
-        
+
         if not terapie:
-            return html.P('Nessuna terapia prescritta.', style={'color': '#888', 'fontStyle': 'italic'})
-        
-        terapie_elements = []
-        for terapia in terapie:
-            terapie_elements.append(
+            return html.P('Nessuna terapia prescritta.',
+                        style={'color': '#888', 'fontStyle': 'italic'})
+
+        return html.Div([
+            html.Div([
+                # Intestazione terapia
+                html.Div([
+                    html.Span(f"Dal {t['data_inizio']} al {t['data_fine']}",
+                            style={'fontSize': '13px', 'color': '#6b7280'}),
+                    html.Span(f" — {t['indicazioni']}",
+                            style={'fontSize': '13px', 'color': '#9ca3af', 'fontStyle': 'italic'}),
+                ], style={'marginBottom': '10px'}),
+
+                # Assunzioni
                 html.Div([
                     html.Div([
-                        html.H5(terapia['farmaco_nome'], style={'margin': '0 0 10px 0', 'color': '#0066cc'}),
-                    ]),
-                    html.Div([
-                        html.P(f"Inizio: {terapia['data_inizio']}", style={'margin': '5px 0', 'fontSize': '13px'}),
-                        html.P(f"Fine: {terapia['data_fine']}", style={'margin': '5px 0', 'fontSize': '13px'}),
-                        html.P(f"Assunzioni giornaliere: {terapia['assunzioni_giornaliere']}", style={'margin': '5px 0', 'fontSize': '13px'}),
-                        html.P(f"Quantità per assunzione: {terapia['quantita_per_assunzione']} {terapia['unita_misura']}", style={'margin': '5px 0', 'fontSize': '13px'}),
-                        html.P(f"Indicazioni: {terapia['indicazioni']}", style={'margin': '5px 0', 'fontSize': '13px', 'color': '#666', 'fontStyle': 'italic'}),
-                    ]),
-                ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'marginBottom': '15px', 'backgroundColor': '#f9f9f9'})
-            )
+                        html.Span(a['orario'], style={
+                            'fontWeight': '600', 'fontSize': '13px',
+                            'color': '#4748AC', 'minWidth': '80px', 'display': 'inline-block',
+                        }),
+                        html.Span(f"{a['farmaco']}",
+                                style={'fontSize': '13px', 'marginRight': '8px'}),
+                        html.Span(f"{a['quantita']} {a['unita_misura']}",
+                                style={'fontSize': '13px', 'color': '#6b7280'}),
+                    ], style={
+                        'padding': '6px 10px',
+                        'background': '#f9fafb' if i % 2 == 0 else '#ffffff',
+                        'borderRadius': '6px', 'marginBottom': '4px',
+                    })
+                    for i, a in enumerate(t['assunzioni'])
+                ]) if t['assunzioni'] else html.P(
+                    'Nessuna assunzione registrata.',
+                    style={'color': '#9ca3af', 'fontSize': '13px'},
+                ),
+
+            ], style={
+                'border': '1px solid #e5e7eb', 'padding': '16px',
+                'borderRadius': '10px', 'marginBottom': '12px',
+                'backgroundColor': '#ffffff',
+            })
+            for t in terapie
+        ]), True
         
-        return html.Div(terapie_elements)

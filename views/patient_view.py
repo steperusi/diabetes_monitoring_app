@@ -6,19 +6,21 @@ from pony.orm import db_session
 HEADER = {
     'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
     'padding': '16px 32px',
-    'background': 'linear-gradient(90deg, #8284D9 0%, #3C3CEC 100%)',
+    'background': 'linear-gradient(to bottom, #2E1F5E 0%, #6A5ACD 100%)',
     'color': 'white', 'fontFamily': '"Inter", "Segoe UI", sans-serif',
     'fontSize': '16px', 'fontWeight': '600',
     'borderRadius': '18px',
     'boxShadow': '0 4px 12px rgba(0,0,0,0.12)',
     'minHeight': '70px', 'letterSpacing': '0.3px',
 }
-CONTAINER = {'maxWidth': '1400px', 'margin': 'auto', 'padding': '15px',
-             'fontFamily': 'sans-serif'}
+CONTAINER = {'maxWidth': '960px', 'margin': 'auto', 'padding': '15px',
+             'fontFamily': '"Inter", "Segoe UI", sans-serif', 'color': '#1f2937',
+            }
 HIDE = {'display': 'none'}
 CHAT_BOX = {'height': '300px', 'overflowY': 'auto', 'border': '1px solid #e5e7eb',
             'padding': '12px', 'marginTop': '10px', 'marginBottom': '10px', 'marginTop': '12px',
-            'backgroundColor': '#f9fafb', 'borderRadius': '12px'}
+            'backgroundColor': '#f9fafb', 'borderRadius': '12px'
+            }
 SECTION_TITLE = {
     'fontSize': '18px', 'fontWeight': '700',
     'color': '#4748AC', 'marginBottom': '4px',
@@ -97,58 +99,58 @@ def daily_measurements():
                 
         # Pre Colazione
         html.Div([
-            html.Label('Pre colazione:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '30%'}),
+            html.Label('Pre colazione:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '35%'}),
             dcc.Input(id='p-meas-breakfast-before', type='number', 
                         placeholder='Es. 120', 
-                        style={'padding': '5px', 'width': '65%'}),
+                        style={'padding': '5px', 'width': '45%'}),
             html.Span(id='p-meas-status-breakfast-before', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
         
         # Post Colazione
         html.Div([
-            html.Label('Post colazione:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '30%'}),
+            html.Label('Post colazione:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '35%'}),
             dcc.Input(id='p-meas-breakfast-after', type='number', 
                         placeholder='Es. 180', 
-                        style={'padding': '5px', 'width': '65%'}),
+                        style={'padding': '5px', 'width': '45%'}),
             html.Span(id='p-meas-status-breakfast-after', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Pre Pranzo
         html.Div([
-            html.Label('Pre pranzo:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '30%'}),
+            html.Label('Pre pranzo:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '35%'}),
             dcc.Input(id='p-meas-lunch-before', type='number', 
                         placeholder='Es. 120', 
-                        style={'padding': '5px', 'width': '65%'}),
+                        style={'padding': '5px', 'width': '45%'}),
             html.Span(id='p-meas-status-lunch-before', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Post Pranzo
         html.Div([
-            html.Label('Post pranzo:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '30%'}),
+            html.Label('Post pranzo:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '35%'}),
             dcc.Input(id='p-meas-lunch-after', type='number', 
                         placeholder='Es. 180', 
-                        style={'padding': '5px', 'width': '65%'}),
+                        style={'padding': '5px', 'width': '45%'}),
             html.Span(id='p-meas-status-lunch-after', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Pre Cena
         html.Div([
-            html.Label('Pre cena:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '30%'}),
+            html.Label('Pre cena:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '35%'}),
             dcc.Input(id='p-meas-dinner-before', type='number', 
                         placeholder='Es. 120', 
-                        style={'padding': '5px', 'width': '65%'}),
+                        style={'padding': '5px', 'width': '45%'}),
             html.Span(id='p-meas-status-dinner-before', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
                 
         # Post Cena
         html.Div([
-            html.Label('Post cena:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '30%'}),
+            html.Label('Post cena:', style={'fontWeight': 'bold', 'marginTop': '10px', 'display': 'inline-block', 'width': '35%'}),
             dcc.Input(id='p-meas-dinner-after', type='number', 
                         placeholder='Es. 180', 
-                        style={'padding': '5px', 'width': '65%'}),
+                        style={'padding': '5px', 'width': '45%'}),
             html.Span(id='p-meas-status-dinner-after', style={'marginLeft': '8px', 'fontSize': '16px', 'minWidth': '20px'}),
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
-    ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '1', 'marginRight': '15px'})
+    ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '0 0 40%', 'minWidth': '0'})
 
 @db_session
 def daily_medicine_assumptions():
@@ -161,8 +163,8 @@ def daily_medicine_assumptions():
         # Header row
         html.Div([
             html.Div('Ora', style={'fontWeight': 'bold', 'flex': '0 0 25%', 'textAlign': 'center'}),
-            html.Div('Farmaco', style={'fontWeight': 'bold', 'flex': '0 0 52.5%', 'textAlign': 'center'}),
-            html.Div('Quantità', style={'fontWeight': 'bold', 'flex': '0 0 12.5%', 'textAlign': 'center'}),
+            html.Div('Farmaco', style={'fontWeight': 'bold', 'flex': '0 0 40.5%', 'textAlign': 'center'}),
+            html.Div('Quantità', style={'fontWeight': 'bold', 'flex': '0 0 8.5%', 'textAlign': 'center'}),
             html.Div('Stato', style={'fontWeight': 'bold', 'flex': '0 0 10%', 'textAlign': 'center'}),
         ], style={'display': 'flex', 'gap': '3px', 'marginBottom': '10px', 'paddingBottom': '10px', 'borderBottom': '2px solid #ddd'}),
         
@@ -184,7 +186,7 @@ def daily_medicine_assumptions():
                         placeholder='Seleziona',
                         style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'fontSize': '13px'}
                     )
-                ], style={'flex': '0 0 52.5%', 'paddingX': '2px'}),
+                ], style={'flex': '0 0 42.5%', 'paddingX': '2px'}),
                 html.Div([
                     dcc.Input(id=f'p-med-qty-{i}', type='text', placeholder='Es. 100',
                         style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'border': '1px solid #ddd', 'borderRadius': '4px'})
@@ -195,7 +197,8 @@ def daily_medicine_assumptions():
             ], style={'display': 'flex', 'gap': '3px', 'marginBottom': '8px', 'alignItems': 'center'})
             for i in range(5)
         ], style={'maxHeight': '200px', 'overflowY': 'auto'}),
-    ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '1'})
+    ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 
+              'flex': '1', 'minWidth': '0', 'maxWidth': '100%', 'boxSizing': 'border-box'})
 
 def daily_data():
     return html.Div(id='p-tab-health', children=[
@@ -212,23 +215,23 @@ def daily_data():
         # Measurements and Medicines side-by-side
         html.Div([
             daily_measurements(),
-                    
             daily_medicine_assumptions(),
-        ], style={'display': 'flex', 'gap': '15px', 'marginBottom': '20px'}),
+        ], style={'background': '#ffffff', 'borderRadius': '16px', 'padding': '24px', 
+        'marginTop': '20px', 'boxShadow': '0 4px 12px rgba(0,0,0,0.07)',
+        'border': '1px solid #e5e7eb', 'display': 'flex', 'gap': '15px', 
+        'marginBottom': '20px', 'boxSizing': 'border-box'}),
                 
         # Submit button for misurazioni and assunzioni
         html.Div([
             html.Button('Salva dati', id='p-save-daily-data', n_clicks=0,
-                       style={'padding': '10px 30px', 'backgroundColor': '#0066cc', 'color': 'white',
-                             'border': 'none', 'borderRadius': '4px', 'cursor': 'pointer', 'fontSize': '16px'}),
+                       style=BTN_PRIMARY),
             html.Span(id='p-save-message', style={'marginLeft': '15px', 'color': 'green'}),
         ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '30px'}),
                 
         # Segnalazioni section
         html.Div([
             html.H4('Segnalazioni'),
-            html.P('Se necessario, segnala qualcosa al tuo medico:', 
-                   style={'fontSize': '14px', 'color': '#666'}),
+            html.P('Se necessario, segnala qualcosa al tuo medico:', style={'fontSize': '14px', 'color': '#666'}),
                     
             # Segnalazione form
             html.Div([
@@ -341,6 +344,7 @@ def therapy():
         html.Div(id='p-therapy-container', children=[
             html.P('Caricamento terapie...', style={'color': '#888'}),
         ]),
+        dcc.Store(id='store-terapie-loaded', data=False),
     ])
 
 def patient_layout(session):

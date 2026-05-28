@@ -8,7 +8,7 @@ from pony.orm import db_session, select
 HEADER = {
     'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
     'padding': '16px 32px',
-    'background': 'linear-gradient(90deg, #8284D9 0%, #3C3CEC 100%)',
+    'background': 'linear-gradient(to bottom, #2E1F5E 0%, #6A5ACD 100%)',
     'color': 'white', 'fontFamily': '"Inter", "Segoe UI", sans-serif',
     'fontSize': '16px', 'fontWeight': '600',
     'borderRadius': '18px',
@@ -68,6 +68,13 @@ BTN_PRIMARY = {
     'padding': '10px 28px', 'fontWeight': '600', 'fontSize': '14px',
     'cursor': 'pointer', 'marginTop': '8px',
 }
+BTN_SECONDARY = {
+    'background': 'linear-gradient(90deg, #4748AC 0%, #5E60CE 100%)',
+    'color': 'white', 'border': 'none', 'borderRadius': '10px',
+    'padding': '10px 28px', 'fontWeight': '600', 'fontSize': '14px',
+    'cursor': 'pointer', 'marginBottom': '12px',
+}
+
 LABEL_STYLE = {
     'fontWeight': '600', 'fontSize': '13px',
     'color': '#6b7280', 'marginBottom': '4px',
@@ -137,20 +144,55 @@ def _field(label: str, input_id: str, placeholder: str = '',
         html.Label(label, style=LABEL_STYLE),
         ctrl,
     ])
+    
+    
+def render_storico_temp(assunzioni: list) -> list:
+    """Storico temporaneo durante la compilazione — con bottone elimina."""
+    header = _table_row(['Fascia', 'Farmaco', 'Quantità', ''], TABLE_HEADER)
+    rows = [
+        _table_row([
+            a['orario'].capitalize(),
+            a['farmaco_nome'],
+            str(a['quantita']),
+            html.Button('✕', id={'type': 'btn-del-assunzione', 'index': i},
+                        n_clicks=0, style={
+                            'background': 'none', 'border': '1px solid #e53e3e',
+                            'color': '#e53e3e', 'borderRadius': '6px',
+                            'cursor': 'pointer', 'padding': '2px 8px', 'fontSize': '12px',
+                        }),
+        ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
+        for i, a in enumerate(assunzioni)
+    ]
+    return [header] + rows
+    
+def render_storico_assunzioni(storico: list) -> list:
+
+    header = _table_row(
+        ['Paziente', 'Farmaco', 'Fascia', 'Quantità', 'Data Inizio', 'Data Fine'],
+        TABLE_HEADER,
+    )
+    if not storico:
+        return [header, html.Div(
+            'Nessuna assunzione registrata.',
+            style={'padding': '20px', 'color': '#9ca3af',
+                'fontSize': '14px', 'textAlign': 'center'},
+        )]
+    rows = [
+        _table_row([
+            s['paziente'],
+            s['farmaco'],
+            s['fascia'].capitalize(),
+            s['quantita'],
+            s['data_inizio'],
+            s['data_fine'],
+        ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
+        for i, s in enumerate(storico)
+    ]
+    return [header] + rows
 
 
 # ── Schede ────────────────────────────────────────────────────────────────────
 @db_session
-#def my_patients_tab(email: str):
-#    """Mostra solo i pazienti assegnati al medico loggato."""
-#    utente = Utente.get(email=email)
-#    medico = Medico.get(utente=utente)
-
-#    if not medico:
-#        return html.Div('Medico non trovato.', style={'color': '#dc2626', 'padding': '20px'})
-
-#    pazienti = medico.pazienti.select()[:]
-
 def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
                'Obesità', 'Alcolista', 'Stupefacenti', '']
@@ -283,6 +325,7 @@ def edit_patient_tab(paziente: dict) -> html.Div:
         dcc.Store(id='editing-patient-cf', data=paziente.get('codice_fiscale')),
     ], style=CARD)
     
+    
 @db_session
 def manage_therapy_tab(email: str):
     utente = Utente.get(email=email)
@@ -293,22 +336,57 @@ def manage_therapy_tab(email: str):
 
     terapie = medico.terapie.select()[:]
 
-    headers = ['Paziente', 'Farmaco', 'Inizio', 'Fine', 'Ass./giorno', 'Quantità', 'Unità'] #, 'Stato
+    def _assunzioni_detail(terapia) -> html.Div:
+        """Sotto-tabella assunzioni espandibile."""
+        assunzioni = terapia.assunzioni_giornaliere.select()[:]
+        if not assunzioni:
+            return html.Div('Nessuna assunzione registrata.',
+                            style={'padding': '10px 16px', 'color': '#9ca3af', 'fontSize': '13px'})
+        header = _table_row(
+            ['Fascia', 'Farmaco', 'Quantità', 'Unità'],
+            {**TABLE_HEADER, 'background': '#f0f0ff', 'color': '#4748AC'},
+        )
+        righe = [
+            _table_row([
+                a.orario.capitalize(),
+                a.farmaco_nome.nome,
+                str(a.quantita),
+                a.unita_misura,
+            ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
+            for i, a in enumerate(assunzioni)
+        ]
+        return html.Div([header] + righe,
+                        style={'borderTop': '1px solid #e5e7eb', 'background': '#fafbff'})
+
+    headers = ['', 'Paziente', 'Inizio', 'Fine']
     rows = []
     for i, t in enumerate(terapie):
-        style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
-        rows.append(_table_row([
-            f"{t.paziente.utente.nome} {t.paziente.utente.cognome}",
-            t.farmaco_nome,
-            str(t.data_inizio),
-            str(t.data_fine) if t.data_fine else '—',
-            str(t.assunzioni_giornaliere),
-            str(t.quantita_per_assunzione),
-            t.unita_misura,
-            #html.Span('Attiva',    style={'background': '#dcfce7', 'color': '#166534', 'borderRadius': '6px', 'padding': '2px 10px', 'fontSize': '12px', 'fontWeight': '600'})
-            #if t.attiva else
-            #html.Span('Terminata', style={'background': '#f3f4f6', 'color': '#6b7280', 'borderRadius': '6px', 'padding': '2px 10px', 'fontSize': '12px', 'fontWeight': '600'}),
-        ], style))
+        row_style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
+        rows.append(html.Div([
+            # Riga principale con freccia
+            _table_row([
+                html.Button(
+                    '▶',
+                    id={'type': 'btn-expand-therapy', 'index': t.id},
+                    n_clicks=0,
+                    style={
+                        'background': 'none', 'border': 'none',
+                        'cursor': 'pointer', 'fontSize': '12px',
+                        'color': '#4748AC', 'padding': '0 4px',
+                        'transition': 'transform 0.2s',
+                    },
+                ),
+                f"{t.paziente.utente.nome} {t.paziente.utente.cognome}",
+                str(t.data_inizio),
+                str(t.data_fine) if t.data_fine else '—',
+            ], row_style),
+            # Dettaglio assunzioni (inizialmente nascosto)
+            html.Div(
+                id={'type': 'therapy-detail', 'index': t.id},
+                children=_assunzioni_detail(t),
+                style={'display': 'none'},
+            ),
+        ]))
 
     return html.Div([
         html.Div(style={'display': 'flex', 'justifyContent': 'space-between',
@@ -327,9 +405,91 @@ def manage_therapy_tab(email: str):
                          style={'padding': '20px', 'color': '#9ca3af',
                                 'fontSize': '14px', 'textAlign': 'center'}),
             ]),
-        ], style={'borderRadius': '12px', 'overflowX': 'auto', 'minWidth': '0',
-                  'border': '1px solid #e5e7eb'}),
+        ], style={'borderRadius': '12px', 'overflowX': 'auto',
+                  'minWidth': '0', 'border': '1px solid #e5e7eb'}),
     ], style=CARD)
+
+
+@db_session
+def add_therapy_tab(email: str):
+    pazienti_options = [
+        {'label': f"{p.utente.nome} {p.utente.cognome}", 'value': p.utente.email}
+        for p in list(Paziente.select())
+    ]
+    farmaci_options = [
+        {'label': f.nome, 'value': f.nome} for f in list(Farmaco.select())
+    ]
+
+    return html.Div([
+        html.Div('Inserimento', style=SECTION_TITLE),
+        html.Div('Aggiungi una terapia scegliendo il paziente, le date e le assunzioni.', style=SECTION_SUBTITLE),
+
+        html.Div(id='insert-therapy-form', children=[
+
+            # ── Paziente + Date ───────────────────────────────────────────────
+            html.Div(style={
+                'display': 'grid', 'gridTemplateColumns': '1fr 1fr 1fr',
+                'gap': '0 24px', 'marginTop': '20px', 'marginBottom': '20px',
+            }, children=[
+                _field('Paziente *', 'inp-p-nome', 'Seleziona…', options=pazienti_options),
+                html.Div([
+                    html.Label('Data Inizio *', style=LABEL_STYLE),
+                    dcc.DatePickerSingle(id='inp-data-inizio', display_format='YYYY-MM-DD',
+                                        placeholder='YYYY-MM-DD', style={'marginBottom': '14px'}),
+                ]),
+                html.Div([
+                    html.Label('Data Fine', style=LABEL_STYLE),
+                    dcc.DatePickerSingle(id='inp-data-fine', display_format='YYYY-MM-DD',
+                                        placeholder='YYYY-MM-DD', style={'marginBottom': '14px'}),
+                ]),
+            ]),
+
+            # ── Input singola assunzione ──────────────────────────────────────
+            html.Hr(style={'borderColor': '#e2e8f0', 'margin': '4px 0 16px'}),
+            html.Div('Assunzioni giornaliere', style={
+                'fontWeight': '600', 'fontSize': '14px',
+                'color': '#4748AC', 'marginBottom': '12px',
+            }),
+
+            html.Div(style={
+                'display': 'grid', 'gridTemplateColumns': '160px 1fr 100px auto',
+                'gap': '0 12px', 'alignItems': 'end', 'marginBottom': '12px',
+            }, children=[
+                _field('Fascia', 'inp-fascia', options=[
+                    {'label': 'Colazione', 'value': 'colazione'},
+                    {'label': 'Pranzo',    'value': 'pranzo'},
+                    {'label': 'Cena',      'value': 'cena'},
+                ]),
+                _field('Farmaco', 'inp-farmaco-row', 'Seleziona farmaco…', options=farmaci_options),
+                _field('Quantità', 'inp-quantita-row', 'es. 1', type_='text'),
+                html.Div([
+                    html.Button('+ Aggiungi', id='btn-add-assunzione', n_clicks=0, style=BTN_SECONDARY),
+                ]),
+            ]),
+
+            html.Div(id='msg-add-assunzione', style={'fontSize': '13px', 'marginBottom': '8px'}),
+
+            # ── Storico temporaneo assunzioni ─────────────────────────────────
+            html.Div(id='storico-temp-section', style={'display': 'none'}, children=[
+                html.Div('Assunzioni aggiunte', style={
+                    'fontWeight': '600', 'fontSize': '13px',
+                    'color': '#6b7280', 'marginBottom': '8px',
+                }),
+                html.Div(id='storico-temp-table',
+                         style={'borderRadius': '12px', 'overflowX': 'auto',
+                                'border': '1px solid #e5e7eb', 'marginBottom': '16px'}),
+            ]),
+
+            html.Div(id='msg-add-therapy', style={'marginTop': '8px', 'fontSize': '13px'}),
+            html.Button('Salva Terapia', id='btn-save-therapy', n_clicks=0, style=BTN_PRIMARY),
+        ]),
+
+        # ── Store temporaneo assunzioni ───────────────────────────────────────
+        dcc.Store(id='store-assunzioni-temp', data={'items': [], 'ts': 0}),
+        dcc.Store(id='store-reset-form', data=0),
+
+    ], style=CARD)
+
 
 
 def messages_tab() -> html.Div:
@@ -350,53 +510,7 @@ def messages_tab() -> html.Div:
         html.Div(id='m-send-status',
                  style={'color': '#16a34a', 'marginTop': '6px', 'fontSize': '13px'}),
     ], style=CARD)
-
-
     
-@db_session
-def add_therapy_tab(email: str):
-    pazienti_options = [
-        {'label': f"{p.utente.nome} {p.utente.cognome}", 'value': p.utente.email}
-        for p in list(Paziente.select())
-    ]
-    farmaci_options = [
-        {'label': f.nome, 'value': f.nome} for f in list(Farmaco.select())
-    ]
-
-    return html.Div([
-        html.Div('Inserimento', style=SECTION_TITLE),
-        html.Div('Aggiungi una terapia scegliendo il paziente e compilando i campi.', style=SECTION_SUBTITLE),
-
-    html.Div(id='insert-therapy-form', children=[
-        html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr',
-                        'gap': '0 24px', 'marginTop': '20px'}, children=[
-            _field('Paziente *', 'inp-p-nome', 'Seleziona…', options=pazienti_options),
-            _field('Nome Farmaco *', 'inp-f-nome', 'Seleziona… ', options=farmaci_options),
-            
-            html.Div([
-                html.Label('Data Inizio *', style=LABEL_STYLE),
-                dcc.DatePickerSingle(id='inp-data-inizio', display_format='YYYY-MM-DD',
-                                    placeholder='YYYY-MM-DD', style={'marginBottom': '14px'}),
-            ]),
-            html.Div([
-                html.Label('Data Fine', style=LABEL_STYLE),
-                dcc.DatePickerSingle(id='inp-data-fine', display_format='YYYY-MM-DD',
-                                    placeholder='YYYY-MM-DD', style={'marginBottom': '14px'}),
-            ]),
-            _field('Assunzioni Giornaliere *', 'inp-assunzioni-giornaliere',    'es. 2'),
-            _field('Quantità per Assunzione *', 'inp-quantita-per-assunzione',    'es. 1'),
-            _field('Unità di Misura *',        'inp-unita-misura',              'es. compressa'),
-        ]),
-
-        html.Div(id='msg-add-therapy', style={'marginTop': '8px', 'fontSize': '13px'}),
-        html.Button('Salva Terapia', id='btn-save-therapy', n_clicks=0, style=BTN_PRIMARY),
-    ]),
-
-], style=CARD)
-    
-
-
-
 
 # ── Layout principale ─────────────────────────────────────────────────────────
 def medic_layout(session: dict) -> html.Div:

@@ -227,36 +227,34 @@ class OrmModel:
         )
         commit()
 
-#    @db_session #IN TEORIA NON SERVE PIù
-#    def get_medici(self):
-#        return [{'id': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
-#                for m in Medico.select()]
     #-----------------------------------------------------------------------------
     
     
     
     # ---- operazioni medico -----------------------------------------------------
     @db_session
-    def crea_terapia(self, paziente_email, medico_email, farmaco_nome, data_inizio,
-                    data_fine, assunzioni_giornaliere, quantita_per_assunzione,
-                    unita_misura):#indicazioni d vedere se servono o le mettiamo in un secondo momento
-        
+    def crea_terapia(self, paziente_email, medico_email, data_inizio, data_fine, assunzioni: list):
         paziente = Paziente.get(utente=Utente.get(email=paziente_email))
         medico   = Medico.get(utente=Utente.get(email=medico_email))
-        
-        if farmaco_nome not in [f.value for f in Farmaco]:
-            raise ValueError(f"Farmaco '{farmaco_nome}' non valido")
-        
-        Terapia(
+
+        terapia = Terapia(
             paziente=paziente,
             medico=medico,
-            farmaco_nome=farmaco_nome,
             data_inizio=data_inizio,
             data_fine=data_fine,
-            assunzioni_giornaliere=assunzioni_giornaliere,
-            quantita_per_assunzione=quantita_per_assunzione,
-            unita_misura=unita_misura
         )
+
+        for a in assunzioni:
+            farmaco = Farmaco.get(nome=a['farmaco_nome'])
+            if not farmaco:
+                raise ValueError(f"Farmaco '{a['farmaco_nome']}' non trovato")
+            Assunzioni_terapia(
+                terapia=terapia,
+                orario=a['orario'],
+                farmaco_nome=farmaco,
+                quantita=float(a['quantita']),
+                unita_misura=farmaco.unita_misura,
+            )
         commit()
 
     @db_session                
@@ -478,13 +476,18 @@ class OrmModel:
         return [
             {
                 'id': t.id,
-                'farmaco_nome': t.farmaco_nome,
                 'data_inizio': str(t.data_inizio),
                 'data_fine': str(t.data_fine) if t.data_fine else 'In corso',
-                'assunzioni_giornaliere': t.assunzioni_giornaliere,
-                'quantita_per_assunzione': t.quantita_per_assunzione,
-                'unita_misura': t.unita_misura,
-                'indicazioni': t.indicazioni if t.indicazioni else 'Nessuna indicazione'
+                'indicazioni': t.indicazioni if t.indicazioni else 'Nessuna indicazione',
+                'assunzioni':[
+                    {
+                        'orario': a.orario.capitalize(),
+                        'farmaco': a.farmaco_nome.nome,
+                        'quantita': a.quantita,
+                        'unita_misura': a.unita_misura,
+                    }
+                    for a in t.assunzioni_giornaliere
+                ]
             }
             for t in terapie
         ]

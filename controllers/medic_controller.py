@@ -1,9 +1,9 @@
 """Controller — callbacks del medico."""
 
-from dash import Output, Input, State, ctx, no_update, html, ALL
+from dash import Output, Input, State, ctx, no_update, html, ALL, MATCH
 from models.model import model, Terapia, Paziente, Medico
 from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, messages_tab, _render_chat, edit_patient_tab
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, render_storico_assunzioni, render_storico_temp, messages_tab, _render_chat, edit_patient_tab
 
 
 def register_callbacks(app):
@@ -25,51 +25,129 @@ def register_callbacks(app):
         if tab == 'messages':
             return messages_tab()
 
+
+    
+ # ---- TERAPIE -----------------------------------------------------------
+
+    @app.callback(
+        Output('store-assunzioni-temp', 'data'),
+        Input({'type': 'btn-del-assunzione', 'index': ALL}, 'n_clicks'),
+        State('store-assunzioni-temp', 'data'),
+        prevent_initial_call=True,
+    )
+    def elimina_assunzione(n_del, store):
+        if not any(n_del):
+            return no_update
+        triggered = ctx.triggered_id
+        if not isinstance(triggered, dict) or triggered.get('type') != 'btn-del-assunzione':
+            return no_update
+        idx = triggered['index']
+        items = (store or {}).get('items', [])
+        return {'items': [a for i, a in enumerate(items) if i != idx], 'ts': 0}
+
+    @app.callback(
+        Output('store-assunzioni-temp', 'data', allow_duplicate=True),
+        Output('store-reset-form', 'data'),
+        Output('msg-add-assunzione', 'children'),
+        Input('btn-add-assunzione', 'n_clicks'),
+        State('store-assunzioni-temp', 'data'),
+        State('inp-fascia', 'value'),
+        State('inp-farmaco-row', 'value'),
+        State('inp-quantita-row', 'value'),
+        prevent_initial_call=True,
+    )
+    def aggiungi_assunzione(n, store, fascia, farmaco, quantita):
+        if not fascia or not farmaco or quantita is None or quantita == '':
+            return no_update, no_update, \
+                html.Span('⚠️ Compila tutti i campi prima di aggiungere.', style={'color': '#dc2626'})
+        items = (store or {}).get('items', [])
+        nuova = {'orario': fascia, 'farmaco_nome': farmaco, 'quantita': float(quantita)}
+        return {'items': items + [nuova], 'ts': n}, n, ''
+    
+    
+    @app.callback(
+        Output('inp-fascia', 'value'),
+        Output('inp-farmaco-row', 'value'),
+        Output('inp-quantita-row', 'value'),
+        Input('store-reset-form', 'data'),
+        prevent_initial_call=True,
+    )
+    def reset_form_assunzione(ts):
+        return None, None, None
+    
+
+    @app.callback(
+        Output('storico-temp-table', 'children'),
+        Output('storico-temp-section', 'style'),
+        Input('store-assunzioni-temp', 'data'),
+        prevent_initial_call=True,
+    )
+    def aggiorna_storico_temp(store):
+        items = (store or {}).get('items', [])
+        if not items:
+            return [], {'display': 'none'}
+        return render_storico_temp(items), {'display': 'block'}
+
+
     #salvataggio terapia
     @app.callback(
         Output('msg-add-therapy', 'children'),
         Output('msg-add-therapy', 'style'),
         Input('btn-save-therapy', 'n_clicks'),
-        State('inp-p-nome', 'value'), #email paziente dallo Store
-        State('medic-email', 'data'), #email medico da sessione
-        State('inp-f-nome', 'value'),
+        State('inp-p-nome', 'value'),
+        State('medic-email', 'data'),
         State('inp-data-inizio', 'date'),
         State('inp-data-fine', 'date'),
-        State('inp-assunzioni-giornaliere', 'value'),
-        State('inp-quantita-per-assunzione', 'value'),
-        State('inp-unita-misura', 'value'),
+        State('store-assunzioni-temp', 'data'),
         prevent_initial_call=True,
     )
-    def save_therapy(n, p_email, m_email, f_nome, data_inizio, data_fine, assunzioni_giornaliere, quantita_per_assunzione, unita_misura):
-        if not n:
-            return '', {}
-        missing = [f for f, v in [('Paziente', p_email), ('Nome Farmaco', f_nome),
-                                   ('Data Inizio', data_inizio),
-                                   ('Assunzioni Giornaliere', assunzioni_giornaliere),
-                                   ('Quantità per Assunzione', quantita_per_assunzione),
-                                   ('Unità di Misura', unita_misura)] if not v]
+    def save_therapy(n, p_email, m_email, data_inizio, data_fine, store):
+        assunzioni = (store or {}).get('items', [])
+
+        missing = [f for f, v in [('Paziente', p_email), ('Data Inizio', data_inizio)] if not v]
         if missing:
-            return (f'⚠️ Campi obbligatori mancanti: {", ".join(missing)}.',
-                    {'color': '#dc2626', 'fontSize': '13px'})
+            return (
+                f'⚠️ Campi obbligatori mancanti: {", ".join(missing)}.',
+                {'color': '#dc2626', 'fontSize': '13px'},
+            )
+        if not assunzioni:
+            return (
+                '⚠️ Aggiungi almeno un\'assunzione prima di salvare.',
+                {'color': '#dc2626', 'fontSize': '13px'},
+            )
+
         try:
             model.crea_terapia(
                 paziente_email=p_email,
                 medico_email=m_email,
-                farmaco_nome=f_nome,
                 data_inizio=data_inizio,
                 data_fine=data_fine or None,
-                assunzioni_giornaliere=assunzioni_giornaliere,
-                quantita_per_assunzione=quantita_per_assunzione,
-                unita_misura=unita_misura
+                assunzioni=assunzioni,
             )
-            return ('✅ Terapia aggiunta con successo', 
-                    {'color': '#16a34a', 'fontSize': '13px'})
         except Exception as e:
-            return (f'❌ Errore durante l\'aggiunta della terapia: {str(e)}', 
-                    {'color': '#dc2626', 'fontSize': '13px'})
-            pazienti = model.get_pazienti_medico(email)
-            return my_patients_tab(pazienti)
-        return my_patients_tab([])  # fallback, aggiungi altri tab qui
+            return (
+                f'❌ Errore durante il salvataggio: {str(e)}',
+                {'color': '#dc2626', 'fontSize': '13px'},
+            )
+
+        return (
+            '✅ Terapia aggiunta con successo',
+            {'color': '#16a34a', 'fontSize': '13px'},
+        )
+        
+        
+    #dropdown per mostrare lista assunzioni singola terapia    
+    @app.callback(
+        Output({'type': 'therapy-detail', 'index': MATCH}, 'style'),
+        Output({'type': 'btn-expand-therapy', 'index': MATCH}, 'children'),
+        Input({'type': 'btn-expand-therapy', 'index': MATCH}, 'n_clicks'),
+        prevent_initial_call=True,
+    )
+    def toggle_therapy_detail(n_clicks):
+        if n_clicks % 2 == 1:
+            return {'display': 'block'}, '▼'
+        return {'display': 'none'}, '▶'
+            
 
 
 # ---- messaggi -----------------------------------------------------------

@@ -27,9 +27,8 @@ def login_layout():
 
         html.Button('Login', id='btn-login', n_clicks=0,
                     style={'width': '100%', 'padding': '10px', 'fontSize': '16px',
-                           'backgroundColor': "#2E30A8", 'color': 'white',
-                           'border': 'none', 'borderRadius': '4px', 'cursor': 'pointer'
-                           ''}),
+                           'background': 'linear-gradient(90deg, #4748AC 0%, #5E60CE 100%)', 
+                           'color': 'white', 'border': 'none', 'borderRadius': '10px', 'cursor': 'pointer'''}),
 
         html.Div(id='login-error', style={'color': 'red', 'marginTop': '10px',
                                            'textAlign': 'center'}),
