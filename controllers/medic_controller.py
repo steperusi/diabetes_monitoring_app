@@ -184,3 +184,101 @@ def register_callbacks(app):
             return no_update, no_update
         pazienti = model.get_pazienti_medico(email)
         return my_patients_tab(pazienti), 'patients'
+    
+
+    # ---- carica alert medico -------------------------------------------------
+    @app.callback(
+        Output('m-alert-badge', 'children'),
+        Output('m-alert-badge', 'style'),
+        Output('m-alert-panel', 'children'),
+        Input('m-refresh', 'n_intervals'),
+        State('medic-email', 'data'),
+    )
+    def refresh_alerts_medico(_, medic_email):
+        if isinstance(medic_email, dict):
+            medic_email = medic_email.get('email')
+        if not medic_email:
+            return '0', {'display': 'none'}, []
+
+        alerts = model.get_alert_non_letti(medic_email)
+        count = len(alerts)
+
+        badge_style = {
+            'background': '#ef4444', 'color': 'white',
+            'borderRadius': '50%', 'fontSize': '11px',
+            'padding': '1px 6px', 'marginLeft': '4px',
+            'fontWeight': '700',
+            'display': 'inline' if count > 0 else 'none',
+        }
+
+        if not alerts:
+            pannello_content = [
+                html.Div('Notifiche', style={
+                    'padding': '12px 16px', 'fontWeight': '700',
+                    'fontSize': '14px', 'borderBottom': '1px solid #e5e7eb',
+                    'color': '#1f2937',
+                }),
+                html.Div('Nessuna notifica.', style={
+                    'padding': '16px', 'color': '#9ca3af', 'fontSize': '14px',
+                }),
+            ]
+        else:
+            voci = []
+            for a in alerts:
+                voci.append(html.Div([
+                    html.Div(a['informazioni'], style={
+                        'fontSize': '13px', 'color': '#1f2937', 'marginBottom': '4px',
+                    }),
+                    html.Div([
+                        html.Span(a['timestamp'], style={
+                            'fontSize': '11px', 'color': '#9ca3af',
+                        }),
+                        html.Button('✓ Letto', id={'type': 'btn-mark-read-medic', 'index': a['id']},
+                                    n_clicks=0, style={
+                                        'background': 'none', 'border': 'none',
+                                        'color': '#4748AC', 'fontSize': '12px',
+                                        'cursor': 'pointer', 'fontWeight': '600',
+                                        'padding': '0', 'marginLeft': '8px',
+                                    }),
+                    ], style={'display': 'flex', 'alignItems': 'center'}),
+                ], style={
+                    'padding': '12px 16px', 'borderBottom': '1px solid #f3f4f6',
+                }))
+
+            pannello_content = [
+                html.Div('Notifiche', style={
+                    'padding': '12px 16px', 'fontWeight': '700',
+                    'fontSize': '14px', 'borderBottom': '1px solid #e5e7eb',
+                    'color': '#1f2937',
+                }),
+                *voci,
+            ]
+
+        return str(count), badge_style, pannello_content
+
+
+    # ---- apri/chiudi pannello alert medico -----------------------------------
+    @app.callback(
+        Output('m-alert-panel', 'style'),
+        Input('m-alert-btn', 'n_clicks'),
+        State('m-alert-panel', 'style'),
+        prevent_initial_call=True,
+    )
+    def toggle_alert_panel_medico(n, current_style):
+        is_open = current_style.get('display') == 'block'
+        return {**current_style, 'display': 'none' if is_open else 'block'}
+
+
+    # ---- segna alert medico come letto ---------------------------------------
+    @app.callback(
+        Output('m-refresh', 'n_intervals'),
+        Input({'type': 'btn-mark-read-medic', 'index': ALL}, 'n_clicks'),
+        State('m-refresh', 'n_intervals'),
+        prevent_initial_call=True,
+    )
+    def mark_alert_read_medico(n_clicks_list, current_intervals):
+        triggered = ctx.triggered_id
+        if not triggered or not any(n for n in n_clicks_list if n):
+            return no_update
+        model.segna_alert_letto(triggered['index'])
+        return (current_intervals or 0) + 1

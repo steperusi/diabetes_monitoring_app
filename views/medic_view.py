@@ -349,7 +349,6 @@ def messages_tab() -> html.Div:
         ], style={'display': 'flex', 'alignItems': 'center'}),
         html.Div(id='m-send-status',
                  style={'color': '#16a34a', 'marginTop': '6px', 'fontSize': '13px'}),
-        dcc.Interval(id='m-refresh', interval=5000),
     ], style=CARD)
 
 
@@ -411,10 +410,32 @@ def medic_layout(session: dict) -> html.Div:
             html.H3('Medico', style={'margin': '0', 'color': 'white'}),
             html.Div([
                 html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
+                html.Div([
+                    html.Button(
+                        ['🔔', html.Span('0', id='m-alert-badge', style={
+                            'background': '#ef4444', 'color': 'white',
+                            'borderRadius': '50%', 'fontSize': '11px',
+                            'padding': '1px 6px', 'marginLeft': '4px',
+                            'fontWeight': '700', 'display': 'none',
+                        })],
+                        id='m-alert-btn', n_clicks=0,
+                        style={'background': 'none', 'border': '1px solid white',
+                            'borderRadius': '8px', 'color': 'white',
+                            'padding': '6px 12px', 'cursor': 'pointer',
+                            'fontSize': '16px', 'marginRight': '10px'},
+                    ),
+                    html.Div(id='m-alert-panel', style={
+                        'display': 'none', 'position': 'absolute', 'right': '160px',
+                        'top': '70px', 'zIndex': '1000', 'width': '340px',
+                        'background': 'white', 'borderRadius': '12px',
+                        'boxShadow': '0 8px 24px rgba(0,0,0,0.15)',
+                        'border': '1px solid #e5e7eb', 'overflow': 'hidden',
+                    }),
+                ], style={'position': 'relative'}),
                 html.Button('Logout', id='btn-logout', n_clicks=0,
                             style={'padding': '6px 16px', 'borderRadius': '8px'}),
-            ]),
-        ], style=HEADER),
+            ], style={'display': 'flex', 'alignItems': 'center'}),
+        ], style={**HEADER, 'position': 'relative'}),
 
         # Corpo
         html.Div([
@@ -429,4 +450,5 @@ def medic_layout(session: dict) -> html.Div:
 
         # Store per passare l'email al controller senza rifare il login
         dcc.Store(id='medic-email', data=session.get('email')),
+        dcc.Interval(id='m-refresh', interval=5000),
     ])

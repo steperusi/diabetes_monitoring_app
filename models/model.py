@@ -328,7 +328,9 @@ class OrmModel:
     # ---- operazioni Segnalazioni -----------------------------------------------
     @db_session
     def create_segnalazione(self, patient_email, title, description):
-        p = Paziente.get(utente=patient_email)
+        u = Utente.get(email=patient_email)
+        p = Paziente.get(utente=u)
+        print(f"[SEGNALAZIONE] utente={u}, paziente={p}, medico={p.medico_riferimento if p else None}")
         if not p:
             return False
         Segnalazione(
@@ -337,7 +339,12 @@ class OrmModel:
             descrizione=description,
             data_ora=datetime.now()
         )
+        medico_utente = p.medico_riferimento.utente
+        print(f"[SEGNALAZIONE] creo alert per medico={medico_utente}")
+        testo = f"🔔 Il paziente {p.utente.nome} {p.utente.cognome} ha inviato una nuova segnalazione: «{title} -- {description}»."
+        Alert(utente=medico_utente, informazioni=testo)
         commit()
+        print("[SEGNALAZIONE] commit eseguito")
         return True
     
     @db_session
