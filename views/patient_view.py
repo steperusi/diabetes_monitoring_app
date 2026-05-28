@@ -49,17 +49,18 @@ INPUT_STYLE = {
 def patient_header(session):
     name = session['display_name']
     return html.Div([
-        html.H3('Diabetes Control Center', style={'margin': '0'}),
+        html.Img(src='/assets/full_logo.png', alt='Logo',
+                 style={'height': '50px', 'borderRadius': '8px', 'marginRight': '16px'}),
+        html.H2('Paziente', style={'margin': '0', 'color': 'white'}),
         html.Div([
             html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
-            # ── Badge notifiche ──
             html.Div([
                 html.Button(
                     ['🔔', html.Span('0', id='p-alert-badge', style={
                         'background': '#ef4444', 'color': 'white',
                         'borderRadius': '50%', 'fontSize': '11px',
                         'padding': '1px 6px', 'marginLeft': '4px',
-                        'fontWeight': '700', 'display': 'none',  # nascosto se 0
+                        'fontWeight': '700', 'display': 'none',
                     })],
                     id='p-alert-btn', n_clicks=0,
                     style={'background': 'none', 'border': '1px solid white',
@@ -67,7 +68,6 @@ def patient_header(session):
                            'padding': '6px 12px', 'cursor': 'pointer',
                            'fontSize': '16px', 'marginRight': '10px'},
                 ),
-                # Pannello alert (nascosto di default)
                 html.Div(id='p-alert-panel', style={
                     'display': 'none', 'position': 'absolute', 'right': '160px',
                     'top': '70px', 'zIndex': '1000', 'width': '340px',

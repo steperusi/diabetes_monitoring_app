@@ -361,7 +361,7 @@ def add_therapy_tab(email: str):
         for p in list(Paziente.select())
     ]
     farmaci_options = [
-        {'label': f.value, 'value': f.value} for f in Farmaco
+        {'label': f.nome, 'value': f.nome} for f in list(Farmaco.select())
     ]
 
     return html.Div([
@@ -406,7 +406,9 @@ def medic_layout(session: dict) -> html.Div:
     return html.Div([
         # Header
         html.Div([
-            html.H3('Diabetes Control Center - Sezione Medico', style={'margin': '0'}),
+            html.Img(src='/assets/full_logo.png', alt='Logo',
+                    style={'height': '50px', 'borderRadius': '8px', 'marginRight': '16px'}),
+            html.H3('Medico', style={'margin': '0', 'color': 'white'}),
             html.Div([
                 html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
                 html.Button('Logout', id='btn-logout', n_clicks=0,

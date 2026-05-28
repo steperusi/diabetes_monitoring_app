@@ -246,7 +246,9 @@ def secretary_layout(session: dict) -> html.Div:
 
     return html.Div([
         html.Div([
-            html.H3('Diabetes Control Center - Sezione Amministrativa', style={'margin': '0'}),
+            html.Img(src='/assets/full_logo.png', alt='Logo',
+                    style={'height': '50px', 'borderRadius': '8px', 'marginRight': '16px'}),
+            html.H3('Amministrazione', style={'margin': '0', 'color': 'white'}),
             html.Div([
                 html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
                 html.Button('Logout', id='btn-logout', n_clicks=0,
