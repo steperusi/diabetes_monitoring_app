@@ -317,13 +317,10 @@ def data_analysis():
 def medic_and_chat():
     return html.Div(id='p-tab-doctor', style=HIDE, children=[
         html.Div([
-            html.Div('Il tuo Medico', style=SECTION_TITLE),
-            html.Div(id='p-doc-info', style = SECTION_SUBTITLE),
-            html.Div(id='p-doc-email', style = SECTION_SUBTITLE),
-        ]),
-        html.Div([
             html.Div('Messaggi', style=SECTION_TITLE),
             html.Div('Scrivi al tuo medico.', style=SECTION_SUBTITLE),
+            html.Div(id='p-doc-info', style = SECTION_SUBTITLE),
+            html.Div(id='p-doc-email', style = SECTION_SUBTITLE),
             html.Div(id='p-chat-box', style=CHAT_BOX),
             html.Div([
                 dcc.Input(id='p-chat-input', type='text',
