@@ -631,15 +631,16 @@ def register_callbacks(app):
         if already_loaded:
             return no_update, no_update
         if not session:
-            return html.P('Nessuna sessione attiva.', style={'color': '#888'})
+            return (html.P('Nessuna sessione attiva.', style={'color': '#888'}), False)
 
         terapie = model.get_terapie_paziente(session['email'])
 
         if not terapie:
-            return html.P('Nessuna terapia prescritta.',
-                        style={'color': '#888', 'fontStyle': 'italic'})
+            return (html.P('Nessuna terapia prescritta.',
+                        style={'color': '#888', 'fontStyle': 'italic'}),
+                        True)
 
-        return html.Div([
+        content = html.Div([
             html.Div([
                 # Intestazione terapia
                 html.Div([
@@ -677,5 +678,6 @@ def register_callbacks(app):
                 'backgroundColor': '#ffffff',
             })
             for t in terapie
-        ]), True
+        ])
+        return content, True
         
