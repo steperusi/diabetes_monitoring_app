@@ -1,4 +1,4 @@
-from dash import Output, Input, State, ctx, html, no_update
+from dash import Output, Input, State, ctx, html, no_update, ALL
 import plotly.express as px
 from models.model import model
 from datetime import date, datetime
@@ -319,6 +319,106 @@ def register_callbacks(app):
             return 'Errore nel salvataggio dei dati.'
         
 
+    # ---- genera e carica alert -----------------------------------------------
+    @app.callback(
+        Output('p-alert-badge', 'children'),
+        Output('p-alert-badge', 'style'),
+        Output('p-alert-panel', 'children'),
+        Input('p-refresh', 'n_intervals'),
+        State('session', 'data'),
+    )
+    def refresh_alerts(_, session):
+        if not session:
+            return '0', {'display': 'none'}, []
+
+        # Genera alert se mancano misurazioni oggi
+        model.genera_alert_misurazioni(session['email'])
+
+        alerts = model.get_alert_non_letti(session['email'])
+        count = len(alerts)
+
+        badge_style = {
+            'background': '#ef4444', 'color': 'white',
+            'borderRadius': '50%', 'fontSize': '11px',
+            'padding': '1px 6px', 'marginLeft': '4px',
+            'fontWeight': '700',
+            'display': 'inline' if count > 0 else 'none',
+        }
+
+        # Contenuto pannello
+        if not alerts:
+            pannello_content = [
+                html.Div('Notifiche', style={
+                    'padding': '12px 16px', 'fontWeight': '700',
+                    'fontSize': '14px', 'borderBottom': '1px solid #e5e7eb',
+                    'color': '#1f2937',
+                }),
+                html.Div('Nessuna notifica.', style={
+                    'padding': '16px', 'color': '#9ca3af', 'fontSize': '14px',
+                }),
+            ]
+        else:
+            voci = []
+            for a in alerts:
+                voci.append(html.Div([
+                    html.Div(a['informazioni'], style={
+                        'fontSize': '13px', 'color': '#1f2937', 'marginBottom': '4px',
+                    }),
+                    html.Div([
+                        html.Span(a['timestamp'], style={
+                            'fontSize': '11px', 'color': '#9ca3af',
+                        }),
+                        html.Button('✓ Letto', id={'type': 'btn-mark-read', 'index': a['id']},
+                                    n_clicks=0, style={
+                                        'background': 'none', 'border': 'none',
+                                        'color': '#4748AC', 'fontSize': '12px',
+                                        'cursor': 'pointer', 'fontWeight': '600',
+                                        'padding': '0', 'marginLeft': '8px',
+                                    }),
+                    ], style={'display': 'flex', 'alignItems': 'center'}),
+                ], style={
+                    'padding': '12px 16px', 'borderBottom': '1px solid #f3f4f6',
+                }))
+
+            pannello_content = [
+                html.Div('Notifiche', style={
+                    'padding': '12px 16px', 'fontWeight': '700',
+                    'fontSize': '14px', 'borderBottom': '1px solid #e5e7eb',
+                    'color': '#1f2937',
+                }),
+                *voci,
+            ]
+
+        return str(count), badge_style, pannello_content
+
+
+    # ---- apri/chiudi pannello alert ------------------------------------------
+    @app.callback(
+        Output('p-alert-panel', 'style'),
+        Input('p-alert-btn', 'n_clicks'),
+        State('p-alert-panel', 'style'),
+        prevent_initial_call=True,
+    )
+    def toggle_alert_panel(n, current_style):
+        is_open = current_style.get('display') == 'block'
+        return {**current_style, 'display': 'none' if is_open else 'block'}
+
+
+    # ---- segna alert come letto ----------------------------------------------
+    @app.callback(
+        Output('p-refresh', 'n_intervals'),
+        Input({'type': 'btn-mark-read', 'index': ALL}, 'n_clicks'),
+        State('p-refresh', 'n_intervals'),
+        prevent_initial_call=True,
+    )
+    def mark_alert_read(n_clicks_list, current_intervals):
+        triggered = ctx.triggered_id
+        if not triggered or not any(n for n in n_clicks_list if n):
+            return no_update
+        model.segna_alert_letto(triggered['index'])
+        return (current_intervals or 0) + 1  # forza refresh del badge
+        
+
     # ---- Chat paziente ----------------------------------------------------------ù
     @app.callback(
             Output('p-doc-info', 'children'),
@@ -428,14 +528,15 @@ def register_callbacks(app):
         Output('p-graph-pre-cena', 'figure'),
         Output('p-graph-post-cena', 'figure'),
         Input('p-data-refresh', 'n_intervals'),
-        State('session-email', 'data'),
+        State('session', 'data'),
     )
-    def update_misurazioni_graphs(_, email):
-        if not email:
+    def update_misurazioni_graphs(_, session):
+        if not session:
             # Restituisci 6 grafici vuoti
             empty_fig = px.line(title='Nessun dato')
             return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
-        
+        email = session['email']
+
         momenti = {
             'pre_colazione': 'Pre colazione',
             'post_colazione': 'Post colazione',

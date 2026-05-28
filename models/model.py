@@ -75,13 +75,15 @@ class Terapia(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     paziente = Required(Paziente)
     medico = Required(Medico)
+
     data_inizio = Required(date)
     data_fine = Optional(date)
+
     assunzioni_giornaliere = Set('Assunzioni_terapia')
     indicazioni = Optional(LongStr)
-    #attiva = Required(bool, default=True)
-    #data_ultimo_alert = Optional(datetime)
+
     farmaco = Set('Farmaco', reverse='terapie')
+    assunzioni_giornaliere = Set('Assunzioni_terapia')
 
 class Assunzioni_terapia(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -345,6 +347,80 @@ class OrmModel:
             return []
         return [{'id': s.id, 'titolo': s.titolo, 'descrizione': s.descrizione, 'data_ora': str(s.data_ora)}
                 for s in sorted(p.segnalazioni, key=lambda x: x.data_ora, reverse=True)]
+    
+
+    @db_session
+    def get_alert_non_letti(self, email: str) -> list[dict]:
+        u = Utente.get(email=email)
+        if not u:
+            return []
+        alerts = [a for a in u.alert if not a.letto]
+        return [
+            {
+                'id': a.id,
+                'informazioni': a.informazioni,
+                'timestamp': a.timestamp.strftime('%d/%m %H:%M'),
+            }
+            for a in sorted(alerts, key=lambda a: a.timestamp, reverse=True)
+        ]
+    
+    @db_session
+    def segna_alert_letto(self, alert_id: int):
+        a = Alert.get(id=alert_id)
+        if a:
+            a.letto = True
+            commit()
+
+    @db_session
+    def genera_alert_misurazioni(self, paziente_email: str):
+        u = Utente.get(email=paziente_email)
+        p = Paziente.get(utente=u)
+        if not u or not p:
+            return
+
+        oggi = date.today()
+
+        #definisco i 6 momenti con un orario indicativo
+        momenti_config = [
+            ('pre_colazione',  'Pre colazione',  7, 30),
+            ('post_colazione', 'Post colazione', 9,  0),
+            ('pre_pranzo',     'Pre pranzo',    12, 30),
+            ('post_pranzo',    'Post pranzo',   14,  0),
+            ('pre_cena',       'Pre cena',      19, 30),
+            ('post_cena',      'Post cena',     21,  0),
+        ]
+
+        for momento, label, ora_suggerita, minuto_suggerito in momenti_config:
+            #controllo se la misurazione è già stata inserita
+            già_misurato = any(
+                m.date == oggi and m.momento == momento
+                for m in p.misurazioni
+            )
+            if già_misurato:
+                continue
+
+            #evita la creazione di ulteriori alert per lo stesso momento se già esistenti
+            già_presente = any(
+                a.timestamp.date() == oggi
+                and not a.letto
+                and label in a.informazioni
+                for a in u.alert
+            )
+            if già_presente:
+                continue
+
+            #creazione alert solo se siamo vicini o dopo l'orario suggerito
+            ora_attuale = datetime.now().hour * 60 + datetime.now().minute
+            ora_target = ora_suggerita * 60 + minuto_suggerito
+            if ora_attuale < ora_target - 15:
+                continue
+
+            testo = f"⚠️ Ricorda di inserire la misurazione: {label}."
+            Alert(utente=u, informazioni=testo)
+
+        commit()
+
+
 
     # ---- operazioni Misurazioni ------------------------------------------------
     @db_session

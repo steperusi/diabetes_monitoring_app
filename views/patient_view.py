@@ -49,13 +49,37 @@ INPUT_STYLE = {
 def patient_header(session):
     name = session['display_name']
     return html.Div([
-            html.H3('Diabetes Control Center', style={'margin': '0'}),
+        html.H3('Diabetes Control Center', style={'margin': '0'}),
+        html.Div([
+            html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
+            # ── Badge notifiche ──
             html.Div([
-                html.Span(name, style={'marginRight': '15px', 'fontWeight': 'bold'}),
-                html.Button('Logout', id='btn-logout', n_clicks=0,
-                            style={'padding': '6px 16px', 'borderRadius': '8px'}),
-            ]),
-        ], style=HEADER)
+                html.Button(
+                    ['🔔', html.Span('0', id='p-alert-badge', style={
+                        'background': '#ef4444', 'color': 'white',
+                        'borderRadius': '50%', 'fontSize': '11px',
+                        'padding': '1px 6px', 'marginLeft': '4px',
+                        'fontWeight': '700', 'display': 'none',  # nascosto se 0
+                    })],
+                    id='p-alert-btn', n_clicks=0,
+                    style={'background': 'none', 'border': '1px solid white',
+                           'borderRadius': '8px', 'color': 'white',
+                           'padding': '6px 12px', 'cursor': 'pointer',
+                           'fontSize': '16px', 'marginRight': '10px'},
+                ),
+                # Pannello alert (nascosto di default)
+                html.Div(id='p-alert-panel', style={
+                    'display': 'none', 'position': 'absolute', 'right': '160px',
+                    'top': '70px', 'zIndex': '1000', 'width': '340px',
+                    'background': 'white', 'borderRadius': '12px',
+                    'boxShadow': '0 8px 24px rgba(0,0,0,0.15)',
+                    'border': '1px solid #e5e7eb', 'overflow': 'hidden',
+                }),
+            ], style={'position': 'relative'}),
+            html.Button('Logout', id='btn-logout', n_clicks=0,
+                        style={'padding': '6px 16px', 'borderRadius': '8px'}),
+        ], style={'display': 'flex', 'alignItems': 'center'}),
+    ], style={**HEADER, 'position': 'relative'})
 
 def navigation_tabs():
     return dcc.Tabs(id='p-main-tabs', value='health', children=[
@@ -128,6 +152,7 @@ def daily_measurements():
 
 @db_session
 def daily_medicine_assumptions():
+    farmaci = list(Farmaco.select())
     return html.Div([
         html.H4('Assunzione farmaci'),
         html.P('Registra i farmaci assunti oggi:', 
@@ -155,7 +180,7 @@ def daily_medicine_assumptions():
                 html.Div([
                     dcc.Dropdown(
                         id=f'p-med-name-{i}',
-                        options=[{'label': f.nome, 'value': f.nome} for f in Farmaco.select()],
+                        options=[{'label': f.nome, 'value': f.nome} for f in farmaci],
                         placeholder='Seleziona',
                         style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'fontSize': '13px'}
                     )
@@ -343,7 +368,5 @@ def patient_layout(session):
 
             # Refresh interval
             dcc.Interval(id='p-refresh', interval=5000),
-            # Store email in session storage for callbacks
-            dcc.Store(id='session-email', storage_type='session', data=session['email']),
         ], style=CONTAINER),
     ])
