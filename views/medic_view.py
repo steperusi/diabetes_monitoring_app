@@ -195,7 +195,7 @@ def render_storico_assunzioni(storico: list) -> list:
 @db_session
 def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
-               'Obesità', 'Alcolista', 'Stupefacenti', '']
+               'Obesità', 'Alcolista', 'Stupefacenti', '', '']
     rows = []
     for i, p in enumerate(pazienti):
         style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
@@ -210,8 +210,10 @@ def my_patients_tab(pazienti: list) -> html.Div:
             _badge(p['problemi_stupefacenti']),
             html.Button('✏️', id={'type': 'btn-edit-patient', 'index': p['codice_fiscale']}, n_clicks=0, style={
                 'bacbground': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
-                'padding': '2px 8px', 'fontSize': '14px',
-            }),
+                'padding': '2px 8px', 'fontSize': '14px',}),
+            html.Button('📊', id={'type': 'btn-view-data', 'index': p['email']}, n_clicks=0, style={
+                'bacbground': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
+                'padding': '2px 8px', 'fontSize': '14px',}),
         ], style))
     return html.Div([
         html.Div(style={'display': 'flex', 'justifyContent': 'space-between',
