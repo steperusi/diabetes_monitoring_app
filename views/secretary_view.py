@@ -8,7 +8,7 @@ from pony.orm import db_session, select
 HEADER = {
     'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
     'padding': '16px 32px',
-    'background': 'linear-gradient(90deg, #8284D9 0%, #3C3CEC 100%)',
+    'background': 'linear-gradient(to bottom, #2E1F5E 0%, #6A5ACD 100%)',
     'color': 'white', 'fontFamily': '"Inter", "Segoe UI", sans-serif',
     'fontSize': '16px', 'fontWeight': '600',
     'borderRadius': '18px',
