@@ -528,14 +528,14 @@ def register_callbacks(app):
         Output('p-graph-pre-cena', 'figure'),
         Output('p-graph-post-cena', 'figure'),
         Input('p-data-refresh', 'n_intervals'),
-        State('session', 'data'),
+        Input('p-analysis-range', 'value'),
+        State('session-email', 'data'),
     )
-    def update_misurazioni_graphs(_, session):
-        if not session:
+    def update_misurazioni_graphs(_, analysis_range, email):
+        if not email:
             # Restituisci 6 grafici vuoti
             empty_fig = px.line(title='Nessun dato')
             return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
-        email = session['email']
 
         momenti = {
             'pre_colazione': 'Pre colazione',
@@ -548,7 +548,7 @@ def register_callbacks(app):
         
         figures = []
         for momento_key, momento_label in momenti.items():
-            misurazioni = model.get_misurazioni_ultimo_mese(email, momento_key)
+            misurazioni = model.get_misurazioni(email, momento_key, analysis_range)
             
             if misurazioni:
                 dates = [m['date'] for m in misurazioni]

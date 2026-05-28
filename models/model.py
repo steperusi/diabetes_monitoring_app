@@ -457,11 +457,18 @@ class OrmModel:
         return None
     
     @db_session
-    def get_misurazioni_ultimo_mese(self, patient_email, momento):
+    def get_misurazioni(self, patient_email, momento, analysis_range):
         p = Paziente.get(utente=patient_email)
         if not p:
             return []
-        data_limite = date.today() - timedelta(days=30)
+        
+        if analysis_range == 'month':
+            data_limite = date.today() - timedelta(days=30)
+        elif analysis_range == 'week':
+            data_limite = date.today() - timedelta(days=7)
+        else:
+            return []
+
         misurazioni = [m for m in p.misurazioni if m.date >= data_limite and m.momento == momento]
         misurazioni_sorted = sorted(misurazioni, key=lambda x: x.date)
         return [{'date': str(m.date), 'valore_mg_dl': m.valore_mg_dl}
