@@ -227,10 +227,10 @@ class OrmModel:
         )
         commit()
 
-    @db_session #IN TEORIA NON SERVE PIù
-    def get_medici(self):
-        return [{'id': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
-                for m in Medico.select()]
+#    @db_session #IN TEORIA NON SERVE PIù
+#    def get_medici(self):
+#        return [{'id': m.utente.email, 'nome': f"{m.utente.nome} {m.utente.cognome}"}
+#                for m in Medico.select()]
     #-----------------------------------------------------------------------------
     
     

@@ -21,7 +21,7 @@ from controllers import auth_controller, secretary_controller, medic_controller,
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 
-app.title = 'Telemedicina'
+app.title = 'Diabete Control'
 
 app.layout = html.Div([
     dcc.Store(id='session', storage_type='session'),
