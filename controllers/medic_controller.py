@@ -3,8 +3,8 @@
 from dash import Output, Input, State, ctx, no_update, html, ALL, MATCH
 from models.model import model, Terapia, Paziente, Medico
 from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, render_storico_assunzioni, render_storico_temp, messages_tab, _render_chat, edit_patient_tab
-
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_assunzioni, render_storico_temp, messages_tab, _render_chat, edit_patient_tab
+import plotly.express as px
 
 def register_callbacks(app):
 
@@ -248,6 +248,123 @@ def register_callbacks(app):
             return ('✅ Modifiche salvate con successo.', {'color': '#16a34a', 'fontSize': '13px'})
         except Exception as e:
             return (f'❌ Errore: {str(e)}', {'color': '#dc2626', 'fontSize': '13px'})
+
+    # ----- analisi dati -------------------------------------------------
+    @app.callback(
+        Output('m-tab-content', 'children', allow_duplicate=True),
+        Input({'type': 'btn-view-data', 'index': ALL}, 'n_clicks'), prevent_initial_call=True,
+    )
+    def open_data_form(n_clicks_list):
+        #trova quale bottone è stato premuto
+        triggered = ctx.triggered_id
+        if not triggered or not any(n for n in n_clicks_list if n):
+            return no_update
+        cf = triggered['index']
+        paziente = model.get_paziente_by_cf(cf)
+        if not paziente:
+            return no_update
+        return patient_data_tab(paziente)
+    
+    # ---- Analisi dati callback (6 grafici per i momenti) --------------------------------------------------
+    @app.callback(
+        Output('m-p-graph-pre-colazione', 'figure', allow_duplicate=True),
+        Output('m-p-graph-post-colazione', 'figure', allow_duplicate=True),
+        Output('m-p-graph-pre-pranzo', 'figure', allow_duplicate=True),
+        Output('m-p-graph-post-pranzo', 'figure', allow_duplicate=True),
+        Output('m-p-graph-pre-cena', 'figure', allow_duplicate=True),
+        Output('m-p-graph-post-cena', 'figure', allow_duplicate=True),
+        Input('p-data-refresh', 'n_intervals'),
+        Input('p-analysis-range', 'value'),
+        State('viewing-patient-email', 'data'),
+        prevent_initial_call='initial_duplicate',
+    )
+    def update_misurazioni_graphs(_, analysis_range, email):
+        if not email:
+            # Restituisci 6 grafici vuoti
+            empty_fig = px.line(title='Nessun dato')
+            return empty_fig, empty_fig, empty_fig, empty_fig, empty_fig, empty_fig
+
+        momenti = {
+            'pre_colazione': 'Pre colazione',
+            'post_colazione': 'Post colazione',
+            'pre_pranzo': 'Pre pranzo',
+            'post_pranzo': 'Post pranzo',
+            'pre_cena': 'Pre cena',
+            'post_cena': 'Post cena',
+        }
+        
+        figures = []
+        for momento_key, momento_label in momenti.items():
+            misurazioni = model.get_misurazioni(email, momento_key, analysis_range)
+            
+            if misurazioni:
+                dates = [m['date'] for m in misurazioni]
+                values = [m['valore_mg_dl'] for m in misurazioni]
+                
+                fig = px.line(
+                    x=dates,
+                    y=values,
+                    title=f'Andamento {momento_label}',
+                    labels={'x': 'Data', 'y': 'mg/dl'},
+                    template='plotly_white',
+                    markers=False
+                )
+                
+                # Determina i colori dei marker basati sui valori
+                marker_colors = []
+                if 'pre_' in momento_key:
+                    # Prima dei pasti: 80-130
+                    for v in values:
+                        if 80 <= v <= 130:
+                            marker_colors.append('green')
+                        else:
+                            marker_colors.append('red')
+                else:
+                    # Dopo i pasti: sotto 180
+                    for v in values:
+                        if v <= 180:
+                            marker_colors.append('green')
+                        else:
+                            marker_colors.append('red')
+                
+                # Aggiungi scatter trace con marker colorati
+                fig.add_scatter(
+                    x=dates,
+                    y=values,
+                    mode='markers',
+                    marker=dict(
+                        size=8,
+                        color=marker_colors,
+                        line=dict(width=1, color='white')
+                    ),
+                    hovertemplate='<b>%{x}</b><br>Valore: %{y} mg/dl<extra></extra>',
+                    showlegend=False
+                )
+                
+                fig.update_layout(
+                    hovermode='x unified',
+                    margin=dict(l=40, r=100, t=50, b=40),
+                    xaxis_title='Data',
+                    yaxis_title='mg/dl',
+                    showlegend=False,
+                )
+                fig.update_xaxes(tickformat='%d/%m', showticklabels=True)
+                
+                # Aggiungi linee di riferimento per i valori normali
+                if 'pre_' in momento_key:
+                    # Prima dei pasti: 80-130
+                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min (80)', annotation_position='right')
+                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max (130)', annotation_position='right')
+                else:
+                    # Dopo i pasti: sotto 180
+                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max (180)', annotation_position='right')
+            else:
+                fig = px.line(title=f'Nessun dato per {momento_label}')
+                fig.update_layout(template='plotly_white')
+            
+            figures.append(fig)
+        
+        return tuple(figures)
         
     # ----- tasto indietro torna alla lista --------------------------------------------
     @app.callback(

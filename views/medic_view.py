@@ -209,10 +209,10 @@ def my_patients_tab(pazienti: list) -> html.Div:
             _badge(p['problemi_alcol']),
             _badge(p['problemi_stupefacenti']),
             html.Button('✏️', id={'type': 'btn-edit-patient', 'index': p['codice_fiscale']}, n_clicks=0, style={
-                'bacbground': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
+                'background': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
                 'padding': '2px 8px', 'fontSize': '14px',}),
-            html.Button('📊', id={'type': 'btn-view-data', 'index': p['email']}, n_clicks=0, style={
-                'bacbground': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
+            html.Button('📊', id={'type': 'btn-view-data', 'index': p['codice_fiscale']}, n_clicks=0, style={
+                'background': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
                 'padding': '2px 8px', 'fontSize': '14px',}),
         ], style))
     return html.Div([
@@ -326,7 +326,79 @@ def edit_patient_tab(paziente: dict) -> html.Div:
         # Store con il CF del paziente in modifica
         dcc.Store(id='editing-patient-cf', data=paziente.get('codice_fiscale')),
     ], style=CARD)
+
+def patient_data_tab(paziente: dict) -> html.Div:
+    """Analisi dati del paziente"""
+    return html.Div([
+        # Tasto per tornare indietro
+        html.Button('← Torna alla lista', id='btn-back-patients', n_clicks=0,
+                    style={'background': 'none', 'border': 'none', 'color': '#4748AC',
+                           'fontWeight': '600', 'cursor': 'pointer', 'fontSize': '14px',
+                           'marginBottom': '16px', 'padding': '0'}),
+
+        html.Div('Analisi Dati Paziente', style=SECTION_TITLE),
+        html.Div(f"Stai analizzando: {paziente.get('nome')} {paziente.get('cognome')}",
+                 style=SECTION_SUBTITLE),
+
+        # Dropdown per selezionare intervallo di analisi
+        html.Div(id='p-tab-data', children=[
+            html.Div([
+                html.Label('Seleziona intervallo analisi:', style={'fontWeight': 'bold', 'marginRight': '10px'}),
+                dcc.Dropdown(
+                    id='p-analysis-range',
+                    options=[
+                        {'label': 'Ultima settimana', 'value': 'week'},
+                        {'label': 'Ultimo mese', 'value': 'month'},
+                    ],
+                    value='month',
+                    clearable=False,
+                    style={'width': '250px'}
+                )], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '20px', 'margin-top': '20px'}),
+
+            html.P('Andamento delle tue misurazioni per ogni momento della giornata:', 
+                    style={'fontSize': '14px', 'color': '#666'}),
+            
+            # Grid di 6 grafici (2 colonne, 3 righe)
+            html.Div([
+                # Riga 1
+                html.Div([
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-pre-colazione')
+                    ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-post-colazione')
+                    ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                
+                # Riga 2
+                html.Div([
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-pre-pranzo')
+                    ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-post-pranzo')
+                    ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                
+                # Riga 3
+                html.Div([
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-pre-cena')
+                    ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-post-cena')
+                    ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                ], style={'display': 'flex', 'height': '250px'}),
+            ], style={'display': 'flex', 'flexDirection': 'column'}),
+            
+            # Refresh interval
+            dcc.Interval(id='p-data-refresh', interval=5000),
+        ]),
+
+        # Store con l'email del paziente visualizzato
+        dcc.Store(id='viewing-patient-email', data=paziente.get('email')),
     
+    ], style=CARD)
     
 @db_session
 def manage_therapy_tab(email: str):

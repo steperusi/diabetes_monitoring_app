@@ -379,7 +379,7 @@ def patient_layout(session):
             # Tab Terapia
             therapy(),
 
-            # Store per email medico
+            # Store per email utente
             dcc.Store(id='session-email', data=session['email']),
 
             # Refresh interval
