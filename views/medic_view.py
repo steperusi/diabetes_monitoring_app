@@ -408,11 +408,11 @@ def manage_therapy_tab(email: str):
     if not medico:
         return html.Div('Medico non trovato.', style={'color': '#dc2626', 'padding': '20px'})
 
-    terapie = medico.terapie.select()[:]
+    terapie = list(medico.terapie)
 
     def _assunzioni_detail(terapia) -> html.Div:
         """Sotto-tabella assunzioni espandibile."""
-        assunzioni = terapia.assunzioni_giornaliere.select()[:]
+        assunzioni = list(terapia.assunzioni_giornaliere)
         if not assunzioni:
             return html.Div('Nessuna assunzione registrata.',
                             style={'padding': '10px 16px', 'color': '#9ca3af', 'fontSize': '13px'})
