@@ -261,6 +261,7 @@ class OrmModel:
         
         
         commit()
+        self.controlla_aderenza_terapia(paziente_email)
 
     @db_session                
     def get_pazienti_medico(self, medico_email: str) -> list[dict]:
@@ -497,8 +498,103 @@ class OrmModel:
                 Alert(utente=u, informazioni=testo)
                 alert_oggi.add(testo) #aggiorna lo snapshot per le iterazioni successive
 
-        commit()  # ← unico commit, fuori da entrambi i loop
+        commit()
 
+    # ---- Controllo che il paziente segua la terapia ----------------------------
+    @db_session
+    def controlla_aderenza_terapia(self, paziente_email: str):
+        u = Utente.get(email=paziente_email)
+        p = Paziente.get(utente=u)
+        if not u or not p:
+            return 
+        
+        oggi = date.today()
+        ultimi_3_giorni = [oggi - timedelta(days=i) for i in range(1, 4)]
+        FASCE = {
+            'colazione': (7, 30),
+            'pranzo':    (12, 30),
+            'cena':      (19, 30),
+        }
+        terapie_attive = [
+            t for t in p.terapie
+            if t.data_inizio <= oggi and (t.data_fine is None or t.data_fine >= oggi)
+        ]
+        if not terapie_attive:
+            return
+        
+        def farmaci_prescritti_in_giorno(giorno: date) -> set[str]:
+            #ritorna i farmaci che avrebbero dovuto essere assunti in quel giorno
+            prescritti = set()
+            for t in terapie_attive:
+                if t.data_inizio > giorno:
+                    continue
+                for a in t.assunzioni_giornaliere:
+                    if a.orario.lower().strip() in FASCE:
+                        prescritti.add(a.farmaco_nome.nome)
+            return prescritti
+        
+        def farmaci_assunti_in_giorno(giorno: date) -> set[str]:
+            # restituisce i nomi dei farmaci assunti in un dato giorno
+            return {
+                a.farmaco.nome
+                for a in p.assunzioni
+                if a.timestamp.date() == giorno
+            }
+        
+        def terapia_seguita_in_giorno(giorno: date) -> bool:
+            prescritti = farmaci_prescritti_in_giorno(giorno)
+            if not prescritti:
+                return True #nessuna terapia attiva in quel giorno, non è inadempienza alla terapia
+            assunti = farmaci_assunti_in_giorno(giorno)
+            return prescritti.issubset(assunti)
+        
+        #cerca la prima data di inizio terapia, dalla quale partirà il controllo di aderenza
+        prima_data = min(t.data_inizio for t in terapie_attive)
+        
+        #Costruisco la lista di tutti i giorni passati dalla prima terapia, oggi escluso
+        tutti_i_giorni = []
+        giorno = prima_data
+        while giorno < oggi:
+            tutti_i_giorni.append(giorno)
+            giorno += timedelta(days=1)
+            
+        if len(tutti_i_giorni) < 3:
+            return #non sono ancor passati 3 giorni da inizio terapia
+        
+        #cerco 3 giorni consecutivi non seguiti (scorrendo dal piu recente)
+        giorni_non_seguiti_consecutivi = 0
+        for giorno in reversed(tutti_i_giorni):
+            if not terapia_seguita_in_giorno(giorno):
+                giorni_non_seguiti_consecutivi += 1
+                if giorni_non_seguiti_consecutivi >= 3:
+                    break
+            else:
+                break # si spezza la consecutività
+            
+        if giorni_non_seguiti_consecutivi < 3:
+            return
+        
+        #evita alert duplicati, controlla se ne è stato già inviato uno oggi
+        medico_utente = p.medico_riferimento.utente
+        nome_paz = f"{p.utente.nome} {p.utente.cognome}"
+        testo_marker = f"ADERENZA_3GG|{paziente_email}|{oggi.isoformat()}"
+        
+        gia_notificato = any(
+            testo_marker in a.informazioni
+            for a in medico_utente.alert
+        )
+        if gia_notificato:
+            return
+        testo = (
+            f"📋 ADERENZA — {nome_paz} non ha seguito la terapia "
+            f"per almeno 3 giorni consecutivi ({giorni_non_seguiti_consecutivi} giorni). "
+            f"Si consiglia di contattare il paziente. [{testo_marker}]"
+        )
+        
+        Alert(utente=medico_utente, informazioni=testo)
+        commit()
+        
+        
     # ---- operazioni Misurazioni ------------------------------------------------
     @db_session
     def create_misurazione(self, patient_email, measurement_date, momento, valore_mg_dl):
@@ -530,6 +626,12 @@ class OrmModel:
         elif valore >= 180:
             testo = (
                 f"⚠️ ATTENZIONE — {nome_paz}: glicemia elevata {valore:.0f} mg/dL "
+                f"({momento_label})."
+            )
+            Alert(utente=medico_utente, informazioni=testo)
+        elif valore <=70:
+            testo = (
+                f"⚠️ ATTENZIONE — {nome_paz}: glicemia bassa {valore:.0f} mg/dL "
                 f"({momento_label})."
             )
             Alert(utente=medico_utente, informazioni=testo)
