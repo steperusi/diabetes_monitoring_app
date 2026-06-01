@@ -48,6 +48,55 @@ INPUT_STYLE = {
     'marginBottom': '14px',
 }
 
+#--- Funzioni Helper ------
+
+#per riordinare scheda assunzioni da tab terapia
+def _fascia_ordine(fascia: str) -> int:
+    fascia = fascia.lower()
+    if 'colazione' in fascia:
+        return 0
+    elif 'pranzo' in fascia:
+        return 1
+    elif 'cena' in fascia:
+        return 2
+    return 3
+
+def render_terapie(terapie):
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Span(f"Dal {t['data_inizio']} al {t['data_fine']}",
+                        style={'fontSize': '13px', 'color': '#6b7280'}),
+                html.Span(f" — {t['indicazioni']}",
+                        style={'fontSize': '13px', 'color': '#9ca3af', 'fontStyle': 'italic'}),
+            ], style={'marginBottom': '10px'}),
+
+            html.Div([
+                html.Div([
+                    html.Span(a['orario'], style={
+                        'fontWeight': '600', 'fontSize': '13px',
+                        'color': '#4748AC', 'minWidth': '80px', 'display': 'inline-block',
+                    }),
+                    html.Span(a['farmaco'], style={'fontSize': '13px', 'marginRight': '8px'}),
+                    html.Span(f"{a['quantita']} {a['unita_misura']}", style={'fontSize': '13px', 'color': '#6b7280'}),
+                ], style={
+                    'padding': '6px 10px',
+                    'background': '#f9fafb' if i % 2 == 0 else '#ffffff',
+                    'borderRadius': '6px', 'marginBottom': '4px',
+                })
+                for i, a in enumerate(sorted(t['assunzioni'], key=lambda x: _fascia_ordine(x['orario'])))
+            ]) if t['assunzioni'] else html.P('Nessuna assunzione registrata.',
+                                              style={'color': '#9ca3af', 'fontSize': '13px'}),
+
+        ], style={
+            'border': '1px solid #e5e7eb', 'padding': '16px',
+            'borderRadius': '10px', 'marginBottom': '12px',
+            'backgroundColor': '#ffffff',
+        })
+        for t in terapie
+    ])
+    
+
 def patient_header(session):
     name = session['display_name']
     return html.Div([
@@ -157,52 +206,84 @@ def daily_medicine_assumptions():
     farmaci = list(Farmaco.select())
     return html.Div([
         html.H4('Assunzione farmaci'),
-        html.P('Registra i farmaci assunti oggi:', 
-                style={'fontSize': '14px', 'color': '#666'}),
-        
-        # Header row
+        html.P('Registra i farmaci assunti oggi:',
+               style={'fontSize': '14px', 'color': '#666'}),
+
+
+        # Header colonne
         html.Div([
-            html.Div('Ora', style={'fontWeight': 'bold', 'flex': '0 0 25%', 'textAlign': 'center'}),
-            html.Div('Farmaco', style={'fontWeight': 'bold', 'flex': '0 0 40.5%', 'textAlign': 'center'}),
-            html.Div('Quantità', style={'fontWeight': 'bold', 'flex': '0 0 8.5%', 'textAlign': 'center'}),
-            html.Div('Stato', style={'fontWeight': 'bold', 'flex': '0 0 10%', 'textAlign': 'center'}),
-        ], style={'display': 'flex', 'gap': '3px', 'marginBottom': '10px', 'paddingBottom': '10px', 'borderBottom': '2px solid #ddd'}),
-        
-        # Medicine entries (placeholder for 5 rows)
+            html.Div('Ora',      style={'fontWeight': 'bold', 'flex': '0 0 25%', 'textAlign': 'center', 'fontSize': '13px'}),
+            html.Div('Farmaco',  style={'fontWeight': 'bold', 'flex': '1',       'textAlign': 'center', 'fontSize': '13px'}),
+            html.Div('Quantità', style={'fontWeight': 'bold', 'flex': '0 0 80px','textAlign': 'center', 'fontSize': '13px'}),
+        ], style={
+            'display': 'flex', 'gap': '8px',
+            'paddingBottom': '6px', 'borderBottom': '1px solid #e5e7eb',
+            'marginBottom': '8px',
+        }),
+
+        # Riga di input singola
         html.Div([
+            # Ora HH:MM
             html.Div([
-                html.Div([
-                    dcc.Input(id=f'p-med-hour-{i}', type='number', min=0, max=23, step=1, placeholder='HH',
-                        style={'width': '45px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
-                    html.Span(':',
-                        style={'padding': '0 4px', 'fontWeight': 'bold', 'fontSize': '18px'}),
-                    dcc.Input(id=f'p-med-minute-{i}', type='number', min=0, max=59, step=1, placeholder='MM',
-                        style={'width': '45px', 'padding': '5px', 'textAlign': 'center', 'border': '1px solid #ddd', 'borderRadius': '4px'}),
-                ], style={'display': 'flex', 'alignItems': 'center', 'flex': '0 0 25%', 'justifyContent': 'center', 'gap': '2px'}),
-                html.Div([
-                    dcc.Dropdown(
-                        id=f'p-med-name-{i}',
-                        options=[{'label': f.nome, 'value': f.nome} for f in farmaci],
-                        placeholder='Seleziona',
-                        style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'fontSize': '13px'}
-                    )
-                ], style={'flex': '0 0 42.5%', 'paddingX': '2px'}),
-                html.Div([
-                    dcc.Input(id=f'p-med-qty-{i}', type='text', placeholder='Es. 100',
-                        style={'padding': '5px', 'width': '100%', 'boxSizing': 'border-box', 'border': '1px solid #ddd', 'borderRadius': '4px'})
-                ], style={'flex': '0 0 12.5%', 'paddingX': '2px'}),
-                html.Div([
-                    html.Span(id=f'p-med-status-{i}', style={'fontSize': '18px', 'width': '100%', 'textAlign': 'center'})
-                ], style={'flex': '0 0 10%', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
-            ], style={'display': 'flex', 'gap': '3px', 'marginBottom': '8px', 'alignItems': 'center'})
-            for i in range(5)
-        ], style={'maxHeight': '200px', 'overflowY': 'auto'}),
-    ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 
-              'flex': '1', 'minWidth': '0', 'maxWidth': '100%', 'boxSizing': 'border-box'})
+                dcc.Input(
+                    id='p-med-hour-0', type='number',
+                    min=0, max=23, step=1, placeholder='HH',
+                    style={'width': '45px', 'padding': '5px',
+                           'textAlign': 'center', 'border': '1px solid #ddd',
+                           'borderRadius': '4px'}
+                ),
+                html.Span(':', style={'padding': '0 4px', 'fontWeight': 'bold', 'fontSize': '18px'}),
+                dcc.Input(
+                    id='p-med-minute-0', type='number',
+                    min=0, max=59, step=1, placeholder='MM',
+                    style={'width': '45px', 'padding': '5px',
+                           'textAlign': 'center', 'border': '1px solid #ddd',
+                           'borderRadius': '4px'}
+                ),
+            ], style={'display': 'flex', 'alignItems': 'center',
+                      'gap': '2px', 'flex': '0 0 25%', 'justifyContent': 'center'}),
+
+            # Farmaco
+            html.Div([
+                dcc.Dropdown(
+                    id='p-med-name-0',
+                    options=[{'label': f.nome, 'value': f.nome} for f in farmaci],
+                    placeholder='Seleziona farmaco',
+                    style={'fontSize': '13px'}
+                ),
+            ], style={'flex': '1'}),
+
+            # Quantità
+            dcc.Input(
+                id='p-med-qty-0', type='text', placeholder='Es. 1',
+                style={'width': '70px', 'padding': '5px',
+                       'border': '1px solid #ddd', 'borderRadius': '4px',
+                       'textAlign': 'center', 'flex': '0 0 70px'}
+            ),
+        ], style={
+            'display': 'flex', 'alignItems': 'center',
+            'gap': '8px',
+        }),
+        
+        # Storico assunzioni (sotto la riga di input)
+        html.Div(
+            id='p-med-history',
+            children=[],
+            style={'marginBottom': '8px'},
+        ),
+
+        # Store per tenere le assunzioni in memoria
+        dcc.Store(id='p-med-store', data=[]),
+
+    ], style={
+        'border': '1px solid #ddd', 'padding': '15px',
+        'borderRadius': '4px', 'flex': '1',
+        'minWidth': '0', 'maxWidth': '100%', 'boxSizing': 'border-box',
+    })
 
 def daily_data():
     return html.Div(id='p-tab-health', children=[
-        html.H4('Registra i tuoi dati giornalieri'),
+        html.H4('Registra i tuoi dati giornalieri', style=SECTION_TITLE),
                 
         # Date selection
         html.Div([
@@ -289,36 +370,43 @@ def data_analysis():
         html.P('Andamento delle tue misurazioni per ogni momento della giornata:', 
                 style={'fontSize': '14px', 'color': '#666'}),
         
+        
         # Grid di 6 grafici (2 colonne, 3 righe)
         html.Div([
             # Riga 1
             html.Div([
                 html.Div([
                     dcc.Graph(id='p-graph-pre-colazione')
-                ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
                     dcc.Graph(id='p-graph-post-colazione')
-                ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
             ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
             
             # Riga 2
             html.Div([
                 html.Div([
                     dcc.Graph(id='p-graph-pre-pranzo')
-                ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
                     dcc.Graph(id='p-graph-post-pranzo')
-                ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
             ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
             
             # Riga 3
             html.Div([
                 html.Div([
                     dcc.Graph(id='p-graph-pre-cena')
-                ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
                     dcc.Graph(id='p-graph-post-cena')
-                ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
             ], style={'display': 'flex', 'height': '250px'}),
         ], style={'display': 'flex', 'flexDirection': 'column'}),
         
@@ -346,14 +434,19 @@ def medic_and_chat():
                         style={'color': '#16a34a', 'marginTop': '6px', 'fontSize': '13px'}),
         ], style=CARD)
     ])
+    
+    
+
 
 def therapy():
     return html.Div(id='p-tab-therapy', style=HIDE, children=[
-        html.H4('La tua terapia'),
-        html.Div(id='p-therapy-container', children=[
+        html.Div([
+            html.H1('La tua terapia', style=SECTION_TITLE),
+            html.Div(id='p-therapy-container', children=[
             html.P('Caricamento terapie...', style={'color': '#888'}),
         ]),
         dcc.Store(id='store-terapie-loaded', data=False),
+        ], style=CARD)
     ])
 
 def patient_layout(session):

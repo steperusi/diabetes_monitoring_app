@@ -145,10 +145,21 @@ def _field(label: str, input_id: str, placeholder: str = '',
         ctrl,
     ])
     
+def _fascia_ordine(fascia: str) -> int:
+    fascia = fascia.lower()
+    if 'colazione' in fascia:
+        return 0
+    elif 'pranzo' in fascia:
+        return 1
+    elif 'cena' in fascia:
+        return 2
+    return 3
+    
     
 def render_storico_temp(assunzioni: list) -> list:
     """Storico temporaneo durante la compilazione — con bottone elimina."""
     header = _table_row(['Fascia', 'Farmaco', 'Quantità', ''], TABLE_HEADER)
+    ordinate = sorted(assunzioni, key=lambda x: (_fascia_ordine(x['orario']), x['orario']))
     rows = [
         _table_row([
             a['orario'].capitalize(),
@@ -161,7 +172,7 @@ def render_storico_temp(assunzioni: list) -> list:
                             'cursor': 'pointer', 'padding': '2px 8px', 'fontSize': '12px',
                         }),
         ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
-        for i, a in enumerate(assunzioni)
+        for i, a in enumerate(ordinate)
     ]
     return [header] + rows
     
@@ -177,6 +188,7 @@ def render_storico_assunzioni(storico: list) -> list:
             style={'padding': '20px', 'color': '#9ca3af',
                 'fontSize': '14px', 'textAlign': 'center'},
         )]
+    ordinate = sorted(storico, key=lambda x: (_fascia_ordine(x['orario'])))
     rows = [
         _table_row([
             s['paziente'],
@@ -186,7 +198,7 @@ def render_storico_assunzioni(storico: list) -> list:
             s['data_inizio'],
             s['data_fine'],
         ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
-        for i, s in enumerate(storico)
+        for i, s in enumerate(ordinate)
     ]
     return [header] + rows
 
@@ -364,30 +376,36 @@ def patient_data_tab(paziente: dict) -> html.Div:
                 html.Div([
                     html.Div([
                         dcc.Graph(id='m-p-graph-pre-colazione')
-                    ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                     html.Div([
                         dcc.Graph(id='m-p-graph-post-colazione')
-                    ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
                 
                 # Riga 2
                 html.Div([
                     html.Div([
                         dcc.Graph(id='m-p-graph-pre-pranzo')
-                    ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                     html.Div([
                         dcc.Graph(id='m-p-graph-post-pranzo')
-                    ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
                 
                 # Riga 3
                 html.Div([
                     html.Div([
                         dcc.Graph(id='m-p-graph-pre-cena')
-                    ], style={'flex': '1', 'marginRight': '5px', 'minWidth': '0'}),
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                     html.Div([
                         dcc.Graph(id='m-p-graph-post-cena')
-                    ], style={'flex': '1', 'marginLeft': '5px', 'minWidth': '0'}),
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 ], style={'display': 'flex', 'height': '250px'}),
             ], style={'display': 'flex', 'flexDirection': 'column'}),
             
@@ -427,7 +445,7 @@ def manage_therapy_tab(email: str):
                 str(a.quantita),
                 a.unita_misura,
             ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
-            for i, a in enumerate(assunzioni)
+            for i, a in enumerate(sorted(assunzioni, key=lambda x: _fascia_ordine(x.orario)))
         ]
         return html.Div([header] + righe,
                         style={'borderTop': '1px solid #e5e7eb', 'background': '#fafbff'})

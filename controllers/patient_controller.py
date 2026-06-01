@@ -2,6 +2,7 @@ from dash import Output, Input, State, ctx, html, no_update, ALL
 import plotly.express as px
 from models.model import model
 from datetime import date, datetime
+from views.patient_view import render_terapie
 
 MOMENTI = {
     'pre_colazione': 'p-meas-breakfast-before',
@@ -39,6 +40,36 @@ def _render_chat_patient(msgs: list, my_email: str):
             })
         )
     return html.Div(bubbles)
+
+
+def _render_storico(entries):
+    if not entries:
+        return []
+    return [
+        html.Div([
+            html.Span(
+                v['ora'] if isinstance(v, dict) and 'ora' in v
+                else f"{v['timestamp_hour']:02d}:{v['timestamp_minute']:02d}",
+                style={'fontSize': '13px', 'fontWeight': '500',
+                       'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
+            ),
+            html.Span(
+                v['farmaco'] if isinstance(v, dict) and 'farmaco' in v else v['farmaco_nome'],
+                style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
+            ),
+            html.Span(
+                f"{v['qty'] if 'qty' in v else v['quantita_assunta']} cp",
+                style={'fontSize': '12px', 'color': '#6b7280',
+                       'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
+                       'borderRadius': '20px', 'padding': '2px 10px',
+                       'flex': '0 0 70px', 'textAlign': 'center'}
+            ),
+        ], style={
+            'display': 'flex', 'alignItems': 'center', 'gap': '8px',
+            'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
+        })
+        for v in entries
+    ]
 
 
 def _validate_measurement(value, momento_type):
@@ -85,6 +116,9 @@ def _validate_medicine_entry(session_email, hour, minute, medicine_name, quantit
             return '✗', '#ef4444'  # red
     except:
         return '✗', '#ef4444'  # red if error
+    
+    
+    
         
 
 
@@ -128,23 +162,6 @@ def register_callbacks(app):
     for field_name, momento_type in measurement_fields:
         create_meas_callback(field_name, momento_type)
     
-    # ---- Medicine status indicators ------------------------------------------
-    for i in range(5):
-        @app.callback(
-            Output(f'p-med-status-{i}', 'children'),
-            Output(f'p-med-status-{i}', 'style'),
-            Input(f'p-med-hour-{i}', 'value'),
-            Input(f'p-med-minute-{i}', 'value'),
-            Input(f'p-med-name-{i}', 'value'),
-            Input(f'p-med-qty-{i}', 'value'),
-            State('session', 'data'),
-        )
-        def update_med_status(hour, minute, name, qty, session, row_index=i):
-            if not session:
-                return '', {'fontSize': '18px', 'color': '#9ca3af'}
-            
-            symbol, color = _validate_medicine_entry(session['email'], hour, minute, name, qty)
-            return symbol, {'fontSize': '18px', 'color': color}
     
     # ---- Misurazioni callback --------------------------------------------------
     @app.callback(
@@ -181,52 +198,11 @@ def register_callbacks(app):
         Output('p-med-minute-0', 'value'),
         Output('p-med-name-0', 'value'),
         Output('p-med-qty-0', 'value'),
-        Output('p-med-hour-1', 'value'),
-        Output('p-med-minute-1', 'value'),
-        Output('p-med-name-1', 'value'),
-        Output('p-med-qty-1', 'value'),
-        Output('p-med-hour-2', 'value'),
-        Output('p-med-minute-2', 'value'),
-        Output('p-med-name-2', 'value'),
-        Output('p-med-qty-2', 'value'),
-        Output('p-med-hour-3', 'value'),
-        Output('p-med-minute-3', 'value'),
-        Output('p-med-name-3', 'value'),
-        Output('p-med-qty-3', 'value'),
-        Output('p-med-hour-4', 'value'),
-        Output('p-med-minute-4', 'value'),
-        Output('p-med-name-4', 'value'),
-        Output('p-med-qty-4', 'value'),
-        Input('p-date-picker', 'date'),
-        State('session', 'data'),
-    )
-    def load_assunzioni_for_date(ass_date, session):
-        if not session or not ass_date:
-            return tuple([None] * 20)
-        
-        assunzioni = model.get_assunzioni_by_date(session['email'], ass_date)
-        
-        # Crea una lista di tuple (hour, minute, name, qty) per ogni entry
-        result = []
-        for i in range(5):
-            if i < len(assunzioni):
-                ass = assunzioni[i]
-                result.extend([
-                    ass['timestamp_hour'],
-                    ass['timestamp_minute'],
-                    ass['farmaco_nome'],
-                    ass['quantita_assunta']
-                ])
-            else:
-                result.extend([None, None, None, None])
-        
-        return tuple(result)
-    
-    # ---- Save all daily data (misurazioni + assunzioni) --------------------------------------------------
-    @app.callback(
+        Output('p-med-history', 'children'),
+        Output('p-med-store', 'data'),
         Output('p-save-message', 'children'),
+        Input('p-date-picker', 'date'),
         Input('p-save-daily-data', 'n_clicks'),
-        State('p-date-picker', 'date'),
         State('p-meas-breakfast-before', 'value'),
         State('p-meas-breakfast-after', 'value'),
         State('p-meas-lunch-before', 'value'),
@@ -237,87 +213,78 @@ def register_callbacks(app):
         State('p-med-minute-0', 'value'),
         State('p-med-name-0', 'value'),
         State('p-med-qty-0', 'value'),
-        State('p-med-hour-1', 'value'),
-        State('p-med-minute-1', 'value'),
-        State('p-med-name-1', 'value'),
-        State('p-med-qty-1', 'value'),
-        State('p-med-hour-2', 'value'),
-        State('p-med-minute-2', 'value'),
-        State('p-med-name-2', 'value'),
-        State('p-med-qty-2', 'value'),
-        State('p-med-hour-3', 'value'),
-        State('p-med-minute-3', 'value'),
-        State('p-med-name-3', 'value'),
-        State('p-med-qty-3', 'value'),
-        State('p-med-hour-4', 'value'),
-        State('p-med-minute-4', 'value'),
-        State('p-med-name-4', 'value'),
-        State('p-med-qty-4', 'value'),
+        State('p-med-store', 'data'),
         State('session', 'data'),
-        prevent_initial_call=True,
+        prevent_initial_call=False,
     )
-    def save_all_data(n_clicks, meas_date, bf, af, lf, laf, df, daf,
-                      h0, m0, n0, q0, h1, m1, n1, q1, h2, m2, n2, q2,
-                      h3, m3, n3, q3, h4, m4, n4, q4, session):
-        if not session or not meas_date:
-            return 'Errore: sessione non valida.'
-        
-        total_saved = 0
-        total_errors = 0
-        
-        # Salva misurazioni
-        measurements = [
-            ('pre_colazione', bf),
-            ('post_colazione', af),
-            ('pre_pranzo', lf),
-            ('post_pranzo', laf),
-            ('pre_cena', df),
-            ('post_cena', daf),
-        ]
-        
-        for momento, valore in measurements:
-            if valore is not None:
+    def handle_assunzioni(ass_date, n_clicks,
+                        bf, af, lf, laf, df, daf,
+                        h0, m0, n0, q0, store, session):
+        trigger = ctx.triggered_id
+
+        # ---- cambio data: carica storico dal DB ----
+        if trigger is None or trigger == 'p-date-picker':
+            if not session or not ass_date:
+                return None, None, None, None, [], [], no_update
+            assunzioni = model.get_assunzioni_by_date(session['email'], ass_date)
+            voci = _render_storico(assunzioni)
+            store = [
+                {'ora': f"{a['timestamp_hour']:02d}:{a['timestamp_minute']:02d}",
+                'farmaco': a['farmaco_nome'],
+                'qty': a['quantita_assunta']}
+                for a in assunzioni
+            ]
+            return None, None, None, None, voci, store, no_update
+
+        # ---- salva dati ----
+        if trigger == 'p-save-daily-data':
+            if not session or not ass_date:
+                return no_update, no_update, no_update, no_update, no_update, no_update, 'Errore: sessione non valida.'
+
+            total_saved = 0
+            total_errors = 0
+
+            # Misurazioni
+            for momento, valore in [
+                ('pre_colazione', bf), ('post_colazione', af),
+                ('pre_pranzo', lf),    ('post_pranzo', laf),
+                ('pre_cena', df),      ('post_cena', daf),
+            ]:
+                if valore is not None:
+                    try:
+                        if model.create_misurazione(session['email'], ass_date, momento, valore):
+                            total_saved += 1
+                        else:
+                            total_errors += 1
+                    except:
+                        total_errors += 1
+
+            # Nuova assunzione dalla riga di input
+            store = store or []
+            nome_str = str(n0).strip() if n0 else ''
+            qty_str  = str(q0).strip() if q0 else ''
+
+            if h0 is not None and m0 is not None and nome_str and qty_str:
                 try:
-                    success = model.create_misurazione(session['email'], meas_date, momento, valore)
-                    if success:
+                    if model.create_assunzione(session['email'], ass_date,
+                                            int(h0), int(m0), nome_str, qty_str):
+                        store = store + [{'ora': f'{int(h0):02d}:{int(m0):02d}',
+                                        'farmaco': nome_str, 'qty': qty_str}]
                         total_saved += 1
                     else:
                         total_errors += 1
                 except Exception as e:
+                    print(f'Errore save assunzione: {e}')
                     total_errors += 1
-        
-        # Salva assunzioni
-        medicine_entries = [
-            (h0, m0, n0, q0),
-            (h1, m1, n1, q1),
-            (h2, m2, n2, q2),
-            (h3, m3, n3, q3),
-            (h4, m4, n4, q4),
-        ]
-        
-        for ora, minuto, nome, qty in medicine_entries:
-            # Valida che tutti i campi siano valorizzati e non vuoti/None
-            nome_str = str(nome).strip() if nome else ""
-            qty_str = str(qty).strip() if qty else ""
-            
-            if (ora is not None and minuto is not None and nome_str and qty_str):
-                try:
-                    success = model.create_assunzione(session['email'], meas_date, int(ora), int(minuto), nome_str, qty_str)
-                    if success:
-                        total_saved += 1
-                    else:
-                        total_errors += 1
-                except Exception as e:
-                    print(f"Errore save assunzione: {e}")
-                    total_errors += 1
-        
-        if total_saved > 0 and total_errors == 0:
-            return 'Salvati con successo'
-        elif total_saved > 0:
-            return f'Salvati con successo ({total_saved}/{total_saved + total_errors})'
-        else:
-            return 'Errore nel salvataggio dei dati.'
-        
+
+            voci = _render_storico(store)
+            msg = ('Salvati con successo' if total_saved > 0 and total_errors == 0
+                else f'Salvati ({total_saved}/{total_saved + total_errors})' if total_saved > 0
+                else 'Errore nel salvataggio.')
+
+            return None, None, None, None, voci, store, msg
+
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
     # ---- genera e carica alert -----------------------------------------------
     @app.callback(
@@ -641,44 +608,6 @@ def register_callbacks(app):
                         style={'color': '#888', 'fontStyle': 'italic'}),
                         True)
 
-        content = html.Div([
-            html.Div([
-                # Intestazione terapia
-                html.Div([
-                    html.Span(f"Dal {t['data_inizio']} al {t['data_fine']}",
-                            style={'fontSize': '13px', 'color': '#6b7280'}),
-                    html.Span(f" — {t['indicazioni']}",
-                            style={'fontSize': '13px', 'color': '#9ca3af', 'fontStyle': 'italic'}),
-                ], style={'marginBottom': '10px'}),
-
-                # Assunzioni
-                html.Div([
-                    html.Div([
-                        html.Span(a['orario'], style={
-                            'fontWeight': '600', 'fontSize': '13px',
-                            'color': '#4748AC', 'minWidth': '80px', 'display': 'inline-block',
-                        }),
-                        html.Span(f"{a['farmaco']}",
-                                style={'fontSize': '13px', 'marginRight': '8px'}),
-                        html.Span(f"{a['quantita']} {a['unita_misura']}",
-                                style={'fontSize': '13px', 'color': '#6b7280'}),
-                    ], style={
-                        'padding': '6px 10px',
-                        'background': '#f9fafb' if i % 2 == 0 else '#ffffff',
-                        'borderRadius': '6px', 'marginBottom': '4px',
-                    })
-                    for i, a in enumerate(t['assunzioni'])
-                ]) if t['assunzioni'] else html.P(
-                    'Nessuna assunzione registrata.',
-                    style={'color': '#9ca3af', 'fontSize': '13px'},
-                ),
-
-            ], style={
-                'border': '1px solid #e5e7eb', 'padding': '16px',
-                'borderRadius': '10px', 'marginBottom': '12px',
-                'backgroundColor': '#ffffff',
-            })
-            for t in terapie
-        ])
+        content = render_terapie(terapie)
         return content, True
         
