@@ -515,9 +515,28 @@ class OrmModel:
                 momento=momento,
                 valore_mg_dl=float(valore_mg_dl)
             )
-            commit()
-            return True
-    
+        # ---- Alert glicemia al medico ------------------------------------------------
+        valore = float(valore_mg_dl)
+        medico_utente = p.medico_riferimento.utente
+        nome_paz = f"{p.utente.nome} {p.utente.cognome}"
+        momento_label = momento.replace('_', ' ').capitalize()
+        
+        if valore >= 300:
+            testo = (
+                f"🚨 CRITICO — {nome_paz}: glicemia {valore:.0f} mg/dL "
+                f"({momento_label}). Intervento urgente raccomandato."
+            )
+            Alert(utente=medico_utente, informazioni=testo)
+        elif valore >= 180:
+            testo = (
+                f"⚠️ ATTENZIONE — {nome_paz}: glicemia elevata {valore:.0f} mg/dL "
+                f"({momento_label})."
+            )
+            Alert(utente=medico_utente, informazioni=testo)
+        
+        commit()
+        return True
+
     @db_session
     def get_misurazione(self, patient_email, data_misurazione, momento_misurazione):
         p = Paziente.get(utente=patient_email)
