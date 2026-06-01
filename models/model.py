@@ -83,7 +83,6 @@ class Terapia(diabete_db.Entity):
     indicazioni = Optional(LongStr)
 
     farmaco = Set('Farmaco', reverse='terapie')
-    assunzioni_giornaliere = Set('Assunzioni_terapia')
 
 class Assunzioni_terapia(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -413,7 +412,6 @@ class OrmModel:
             #evita la creazione di ulteriori alert per lo stesso momento se già esistenti
             già_presente = any(
                 a.timestamp.date() == oggi
-                and not a.letto
                 and label in a.informazioni
                 for a in u.alert
             )
@@ -431,7 +429,75 @@ class OrmModel:
 
         commit()
 
+    # ---- generazione alert per le assunzioni ------------------------------------------------
+    @db_session
+    def genera_alert_assunzioni(self, paziente_email: str):
+        u = Utente.get(email=paziente_email)
+        p = Paziente.get(utente=u)
+        if not u or not p:
+            return
+        oggi = date.today()
+        ora_attuale = datetime.now().hour * 60 + datetime.now().minute
+        
+        FASCE = {
+            'colazione': (7, 30),
+            'pranzo':    (12, 30),
+            'cena':      (19, 30),
+        }
+        
+        # Fix cast timestamp → date
+        def ts_to_date(ts):
+            if isinstance(ts, datetime):
+                return ts.date()
+            try:
+                return datetime.fromisoformat(str(ts)).date()
+            except Exception:
+                return None
+            
+        # snapshot degli alert già presenti ad oggi prima del loop
+        alert_oggi ={
+            a.informazioni
+            for a in u.alert
+            if ts_to_date(a.timestamp) == oggi
+        }
+        
+        terapie_attive = [
+            t for t in p.terapie
+            if t.data_inizio <= oggi and (t.data_fine is None or t.data_fine >= oggi)
+        ]
 
+        for terapia in terapie_attive:
+            for assunzione in terapia.assunzioni_giornaliere:
+                fascia = assunzione.orario.lower().strip()
+                if fascia not in FASCE:
+                    continue
+                
+                ora_suggerita, minuto_suggerito = FASCE[fascia]
+                ora_target = ora_suggerita * 60 + minuto_suggerito
+                
+                if ora_attuale < ora_target - 15:
+                    continue
+
+                gia_assunto = any(
+                    ts_to_date(a.timestamp) == oggi
+                    and a.farmaco.nome == assunzione.farmaco_nome.nome
+                    for a in p.assunzioni
+                )
+                if gia_assunto:
+                    continue
+                
+                testo = (
+                    f"💊 Ricorda di assumere {assunzione.farmaco_nome.nome} "
+                    f"— {assunzione.quantita} {assunzione.unita_misura} "
+                    f"({fascia})."
+                )
+                if testo in alert_oggi:
+                    continue
+                
+                Alert(utente=u, informazioni=testo)
+                alert_oggi.add(testo) #aggiorna lo snapshot per le iterazioni successive
+
+        commit()  # ← unico commit, fuori da entrambi i loop
 
     # ---- operazioni Misurazioni ------------------------------------------------
     @db_session
@@ -515,18 +581,19 @@ class OrmModel:
         if isinstance(data_assunzione, str):
             data_assunzione = date.fromisoformat(data_assunzione)
             
-        # Valida il farmaco
-        try:
-            farmaco = Farmaco(nome_farmaco)
-        except ValueError:
-            farmaco = Farmaco.ALTRO
+        farmaco = Farmaco.get(nome=nome_farmaco)
+        if not farmaco:
+            farmaco = Farmaco.get(nome='ALTRO')
+        if not farmaco:
+            return False
             
         # Crea l'assunzione
         Assunzione(
             paziente=p,
             timestamp=datetime(data_assunzione.year, data_assunzione.month, data_assunzione.day, ora_assunzione, minuto_assunzione),
             farmaco=farmaco,
-            quantita_assunta=float(quantita_assunta)
+            quantita_assunta=float(quantita_assunta),
+            unita_misura=farmaco.unita_misura,
         )
         commit()
         return True
@@ -546,7 +613,7 @@ class OrmModel:
         return [{'id': a.id,
                  'timestamp_hour': a.timestamp.hour,
                  'timestamp_minute': a.timestamp.minute,
-                 'farmaco_nome': a.farmaco,
+                 'farmaco_nome': a.farmaco.nome,
                  'quantita_assunta': a.quantita_assunta}
                  for a in assunzioni_sorted]
 

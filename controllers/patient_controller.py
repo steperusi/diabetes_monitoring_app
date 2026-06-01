@@ -333,6 +333,7 @@ def register_callbacks(app):
 
         # Genera alert se mancano misurazioni oggi
         model.genera_alert_misurazioni(session['email'])
+        model.genera_alert_assunzioni(session['email'])
 
         alerts = model.get_alert_non_letti(session['email'])
         count = len(alerts)
