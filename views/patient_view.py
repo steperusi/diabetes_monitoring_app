@@ -376,38 +376,38 @@ def data_analysis():
             # Riga 1
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-colazione')
+                    dcc.Graph(id='p-graph-pre-colazione', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-colazione')
+                    dcc.Graph(id='p-graph-post-colazione', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
             
             # Riga 2
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-pranzo')
+                    dcc.Graph(id='p-graph-pre-pranzo', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-pranzo')
+                    dcc.Graph(id='p-graph-post-pranzo', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
             
             # Riga 3
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-cena')
+                    dcc.Graph(id='p-graph-pre-cena', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-cena')
+                    dcc.Graph(id='p-graph-post-cena', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-            ], style={'display': 'flex', 'height': '250px'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+            ], style={'display': 'flex', 'height': '350px'}),
         ], style={'display': 'flex', 'flexDirection': 'column'}),
         
         # Refresh interval
