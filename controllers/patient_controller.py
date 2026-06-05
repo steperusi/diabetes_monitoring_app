@@ -42,34 +42,79 @@ def _render_chat_patient(msgs: list, my_email: str):
     return html.Div(bubbles)
 
 
-def _render_storico(entries):
+def _render_storico(entries, session_email=None):
     if not entries:
         return []
-    return [
-        html.Div([
+    
+    result = []
+    for v in entries:
+        # Parse ora/time info
+        ora_str = v.get('ora') if isinstance(v, dict) and 'ora' in v else None
+        if not ora_str:
+            hour = v.get('timestamp_hour', 0)
+            minute = v.get('timestamp_minute', 0)
+            ora_str = f"{hour:02d}:{minute:02d}"
+        else:
+            try:
+                parts = ora_str.split(':')
+                hour = int(parts[0])
+                minute = int(parts[1])
+            except:
+                hour, minute = 0, 0
+        
+        # Get medicine name
+        medicine_name = v.get('farmaco') if isinstance(v, dict) and 'farmaco' in v else v.get('farmaco_nome', '')
+        
+        # Get quantity
+        quantity = v.get('qty') if isinstance(v, dict) and 'qty' in v else v.get('quantita_assunta', '')
+        
+        # Validate if session_email is provided
+        if session_email:
+            symbol, color = _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity)
+            has_status = True
+        else:
+            symbol, color = '-', '#9ca3af'
+            has_status = False
+        
+        # Build row
+        row_items = [
             html.Span(
-                v['ora'] if isinstance(v, dict) and 'ora' in v
-                else f"{v['timestamp_hour']:02d}:{v['timestamp_minute']:02d}",
+                ora_str,
                 style={'fontSize': '13px', 'fontWeight': '500',
                        'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
             ),
             html.Span(
-                v['farmaco'] if isinstance(v, dict) and 'farmaco' in v else v['farmaco_nome'],
+                medicine_name,
                 style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
             ),
             html.Span(
-                f"{v['qty'] if 'qty' in v else v['quantita_assunta']} cp",
+                f"{quantity} cp",
                 style={'fontSize': '12px', 'color': '#6b7280',
                        'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
                        'borderRadius': '20px', 'padding': '2px 10px',
                        'flex': '0 0 70px', 'textAlign': 'center'}
             ),
-        ], style={
-            'display': 'flex', 'alignItems': 'center', 'gap': '8px',
-            'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
-        })
-        for v in entries
-    ]
+        ]
+        
+        # Add status indicator if validation was performed
+        if has_status:
+            row_items.append(
+                html.Span(
+                    symbol,
+                    style={'fontSize': '16px', 'fontWeight': 'bold', 'color': color,
+                           'flex': '0 0 30px', 'textAlign': 'center'}
+                )
+            )
+        
+        result.append(html.Div(
+            row_items,
+            style={
+                'display': 'flex', 'alignItems': 'center', 'gap': '8px',
+                'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
+            }
+        ))
+    
+    return result
 
 
 def _validate_measurement(value, momento_type):
@@ -97,25 +142,64 @@ def _validate_measurement(value, momento_type):
 
 def _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity):
     """
-    Validates a medicine entry.
-    Returns: ('✓', 'green') for valid, ('✗', 'red') for invalid, ('-', 'gray') for empty
+    Validates a medicine entry against therapy.
+    Checks: medicine exists in therapy, time window is correct, quantity matches.
+    Returns: ('✓', 'green') for valid, ('✗', 'red') for invalid, ('-', 'gray') for empty/incomplete
     """
     # If any field is empty, return gray
     if hour is None or minute is None or not medicine_name or not quantity:
         return '-', '#9ca3af'  # gray for empty
     
+    # Define time windows for each meal (fascia)
+    FASCE_WINDOWS = {
+        'colazione': (6, 11),    # 6:00 to 11:59
+        'pranzo': (11, 15),      # 11:00 to 15:59
+        'cena': (18, 22),        # 18:00 to 22:59
+    }
+    
+    # Determine which fascia the current hour belongs to
+    current_fascia = None
+    for fascia, (start_hour, end_hour) in FASCE_WINDOWS.items():
+        if start_hour <= hour < end_hour:
+            current_fascia = fascia
+            break
+    
+    # If hour is outside all time windows, invalid
+    if not current_fascia:
+        return '✗', '#ef4444'  # red - outside meal times
+    
+    # Get patient's therapies
+    terapie = model.get_terapie_paziente(session_email)
+    
+    # Check if medicine exists in therapy for the current fascia with matching quantity
+    medicine_str = str(medicine_name).strip()
+    quantity_str = str(quantity).strip()
+    
     try:
-        # Get patient's therapies
-        terapie = model.get_terapie_paziente(session_email)
-        terapia_farmaci = [t['farmaco_nome'] for t in terapie]
-        
-        # Check if the medicine is in the therapy list
-        if str(medicine_name).strip() in terapia_farmaci:
-            return '✓', '#22c55e'  # green
-        else:
-            return '✗', '#ef4444'  # red
-    except:
-        return '✗', '#ef4444'  # red if error
+        prescribed_quantity = float(quantity_str)
+    except (ValueError, TypeError):
+        return '✗', '#ef4444'  # red - invalid quantity format
+    
+    # Look through all therapies and their assunzioni
+    for terapia in terapie:
+        for assunzione in terapia.get('assunzioni', []):
+            fascia = assunzione['orario'].lower().strip()
+            farmaco = assunzione['farmaco'].strip()
+            prescribed_qty = float(assunzione['quantita'])
+            
+            # Check if this is the medicine we're looking for
+            if farmaco == medicine_str:
+                # Check if fascia matches
+                if fascia == current_fascia:
+                    # Check if quantity matches
+                    if abs(prescribed_qty - prescribed_quantity) < 0.01:  # Allow small floating point difference
+                        return '✓', '#22c55e'  # green - all match
+                    else:
+                        return '✗', '#ef4444'  # red - quantity mismatch
+                # Medicine found but wrong fascia
+    
+    # Medicine not found in any therapy, or not for this fascia
+    return '✗', '#ef4444'  # red
     
     
     
@@ -227,7 +311,7 @@ def register_callbacks(app):
             if not session or not ass_date:
                 return None, None, None, None, [], [], no_update
             assunzioni = model.get_assunzioni_by_date(session['email'], ass_date)
-            voci = _render_storico(assunzioni)
+            voci = _render_storico(assunzioni, session['email'])
             store = [
                 {'ora': f"{a['timestamp_hour']:02d}:{a['timestamp_minute']:02d}",
                 'farmaco': a['farmaco_nome'],
