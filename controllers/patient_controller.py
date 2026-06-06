@@ -2,7 +2,7 @@ from dash import Output, Input, State, ctx, html, no_update, ALL
 import plotly.express as px
 from models.model import model
 from datetime import date, datetime
-from views.patient_view import render_terapie
+from views.patient_view import render_terapie, render_chat_patient, render_storico, render_chat_patient, render_storico
 
 MOMENTI = {
     'pre_colazione': 'p-meas-breakfast-before',
@@ -15,191 +15,6 @@ MOMENTI = {
 
 SHOW = {'display': 'block'}
 HIDE = {'display': 'none'}
-
-def _render_chat_patient(msgs: list, my_email: str):
-    if not msgs:
-        return html.P('Nessun messaggio.', style={'color': '#9ca3af', 'fontSize': '14px'})
-    bubbles = []
-    for m in msgs:
-        is_mine = m['mittente'] == my_email
-        bubbles.append(
-            html.Div([
-                html.Div(m['testo'], style={
-                    'background': '#0066cc' if is_mine else '#f3f4f6',
-                    'color': 'white' if is_mine else '#1f2937',
-                    'borderRadius': '12px', 'padding': '8px 14px',
-                    'maxWidth': '70%', 'fontSize': '14px',
-                }),
-                html.Div(m['timestamp'], style={
-                    'fontSize': '11px', 'color': '#9ca3af', 'marginTop': '2px',
-                }),
-            ], style={
-                'display': 'flex', 'flexDirection': 'column',
-                'alignItems': 'flex-end' if is_mine else 'flex-start',
-                'marginBottom': '10px',
-            })
-        )
-    return html.Div(bubbles)
-
-
-def _render_storico(entries, session_email=None):
-    if not entries:
-        return []
-    
-    result = []
-    for v in entries:
-        # Parse ora/time info
-        ora_str = v.get('ora') if isinstance(v, dict) and 'ora' in v else None
-        if not ora_str:
-            hour = v.get('timestamp_hour', 0)
-            minute = v.get('timestamp_minute', 0)
-            ora_str = f"{hour:02d}:{minute:02d}"
-        else:
-            try:
-                parts = ora_str.split(':')
-                hour = int(parts[0])
-                minute = int(parts[1])
-            except:
-                hour, minute = 0, 0
-        
-        # Get medicine name
-        medicine_name = v.get('farmaco') if isinstance(v, dict) and 'farmaco' in v else v.get('farmaco_nome', '')
-        
-        # Get quantity
-        quantity = v.get('qty') if isinstance(v, dict) and 'qty' in v else v.get('quantita_assunta', '')
-        
-        # Validate if session_email is provided
-        if session_email:
-            symbol, color = _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity)
-            has_status = True
-        else:
-            symbol, color = '-', '#9ca3af'
-            has_status = False
-        
-        # Build row
-        row_items = [
-            html.Span(
-                ora_str,
-                style={'fontSize': '13px', 'fontWeight': '500',
-                       'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
-            ),
-            html.Span(
-                medicine_name,
-                style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
-            ),
-            html.Span(
-                f"{quantity} cp",
-                style={'fontSize': '12px', 'color': '#6b7280',
-                       'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
-                       'borderRadius': '20px', 'padding': '2px 10px',
-                       'flex': '0 0 70px', 'textAlign': 'center'}
-            ),
-        ]
-        
-        # Add status indicator if validation was performed
-        if has_status:
-            row_items.append(
-                html.Span(
-                    symbol,
-                    style={'fontSize': '16px', 'fontWeight': 'bold', 'color': color,
-                           'flex': '0 0 30px', 'textAlign': 'center'}
-                )
-            )
-        
-        result.append(html.Div(
-            row_items,
-            style={
-                'display': 'flex', 'alignItems': 'center', 'gap': '8px',
-                'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
-            }
-        ))
-    
-    return result
-
-
-def _validate_measurement(value, momento_type):
-    if value is None:
-        return '-', '#9ca3af'  # gray for empty
-    
-    try:
-        val = float(value)
-    except (ValueError, TypeError):
-        return '-', '#9ca3af'
-    
-    # Pre-meals: 80-130 mg/dl is good
-    if 'pre_' in momento_type:
-        if 80 <= val <= 130:
-            return '✓', '#22c55e'  # green
-        else:
-            return '✗', '#ef4444'  # red
-    # Post-meals: <= 180 mg/dl is good
-    else:
-        if val <= 180:
-            return '✓', '#22c55e'  # green
-        else:
-            return '✗', '#ef4444'  # red
-
-
-def _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity):
-    """
-    Validates a medicine entry against therapy.
-    Checks: medicine exists in therapy, time window is correct, quantity matches.
-    Returns: ('✓', 'green') for valid, ('✗', 'red') for invalid, ('-', 'gray') for empty/incomplete
-    """
-    # If any field is empty, return gray
-    if hour is None or minute is None or not medicine_name or not quantity:
-        return '-', '#9ca3af'  # gray for empty
-    
-    # Define time windows for each meal (fascia)
-    FASCE_WINDOWS = {
-        'colazione': (6, 11),    # 6:00 to 11:59
-        'pranzo': (11, 15),      # 11:00 to 15:59
-        'cena': (18, 22),        # 18:00 to 22:59
-    }
-    
-    # Determine which fascia the current hour belongs to
-    current_fascia = None
-    for fascia, (start_hour, end_hour) in FASCE_WINDOWS.items():
-        if start_hour <= hour < end_hour:
-            current_fascia = fascia
-            break
-    
-    # If hour is outside all time windows, invalid
-    if not current_fascia:
-        return '✗', '#ef4444'  # red - outside meal times
-    
-    # Get patient's therapies
-    terapie = model.get_terapie_paziente(session_email)
-    
-    # Check if medicine exists in therapy for the current fascia with matching quantity
-    medicine_str = str(medicine_name).strip()
-    quantity_str = str(quantity).strip()
-    
-    try:
-        prescribed_quantity = float(quantity_str)
-    except (ValueError, TypeError):
-        return '✗', '#ef4444'  # red - invalid quantity format
-    
-    # Look through all therapies and their assunzioni
-    for terapia in terapie:
-        for assunzione in terapia.get('assunzioni', []):
-            fascia = assunzione['orario'].lower().strip()
-            farmaco = assunzione['farmaco'].strip()
-            prescribed_qty = float(assunzione['quantita'])
-            
-            # Check if this is the medicine we're looking for
-            if farmaco == medicine_str:
-                # Check if fascia matches
-                if fascia == current_fascia:
-                    # Check if quantity matches
-                    if abs(prescribed_qty - prescribed_quantity) < 0.01:  # Allow small floating point difference
-                        return '✓', '#22c55e'  # green - all match
-                    else:
-                        return '✗', '#ef4444'  # red - quantity mismatch
-                # Medicine found but wrong fascia
-    
-    # Medicine not found in any therapy, or not for this fascia
-    return '✗', '#ef4444'  # red
     
     
     
@@ -239,7 +54,7 @@ def register_callbacks(app):
             Input(f'p-meas-{field_name}', 'value'),
         )
         def update_meas_status(value):
-            symbol, color = _validate_measurement(value, momento_type)
+            symbol, color = model.validate_misurazione(value, momento_type)
             return symbol, {'fontSize': '18px', 'color': color}
         return update_meas_status
     
@@ -311,7 +126,7 @@ def register_callbacks(app):
             if not session or not ass_date:
                 return None, None, None, None, [], [], no_update
             assunzioni = model.get_assunzioni_by_date(session['email'], ass_date)
-            voci = _render_storico(assunzioni, session['email'])
+            voci = render_storico(assunzioni)
             store = [
                 {'ora': f"{a['timestamp_hour']:02d}:{a['timestamp_minute']:02d}",
                 'farmaco': a['farmaco_nome'],
@@ -361,7 +176,7 @@ def register_callbacks(app):
                     print(f'Errore save assunzione: {e}')
                     total_errors += 1
 
-            voci = _render_storico(store)
+            voci = render_storico(store)
             msg = ('Salvati con successo' if total_saved > 0 and total_errors == 0
                 else f'Salvati ({total_saved}/{total_saved + total_errors})' if total_saved > 0
                 else 'Errore nel salvataggio.')
@@ -511,7 +326,7 @@ def register_callbacks(app):
 
         #Carica conversazione
         msgs = model.get_conversazione(patient_email, medic_email)
-        chat = _render_chat_patient(msgs, patient_email)
+        chat = render_chat_patient(msgs, patient_email)
 
         new_input = '' if trigger == 'p-chat-send' else no_update
         return doc_info, chat, new_input, status
@@ -648,7 +463,7 @@ def register_callbacks(app):
                 
                 fig.update_layout(
                     hovermode='x unified',
-                    margin=dict(l=50, r=60, t=50, b=60),
+                    margin=dict(l=40, r=100, t=50, b=40),
                     xaxis_title='Data',
                     yaxis_title='mg/dl',
                     showlegend=False,
@@ -658,11 +473,11 @@ def register_callbacks(app):
                 # Aggiungi linee di riferimento per i valori normali
                 if 'pre_' in momento_key:
                     # Prima dei pasti: 80-130
-                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min(80)', annotation_position='right')
-                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max(130)', annotation_position='right')
+                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min (80)', annotation_position='right')
+                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max (130)', annotation_position='right')
                 else:
                     # Dopo i pasti: sotto 180
-                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max(180)', annotation_position='right')
+                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max (180)', annotation_position='right')
             else:
                 fig = px.line(title=f'Nessun dato per {momento_label}')
                 fig.update_layout(template='plotly_white')

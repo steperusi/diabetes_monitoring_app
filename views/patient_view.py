@@ -1,6 +1,6 @@
 from dash import html, dcc
 from datetime import date
-from models.model import Farmaco
+from models.model import model, Farmaco
 from pony.orm import db_session
 
 HEADER = {
@@ -60,6 +60,64 @@ def _fascia_ordine(fascia: str) -> int:
     elif 'cena' in fascia:
         return 2
     return 3
+
+def render_chat_patient(msgs: list, my_email: str) -> html.Div:
+    """Renderizza la chat del paziente con il proprio medico."""
+    if not msgs:
+        return html.P('Nessun messaggio.', style={'color': '#9ca3af', 'fontSize': '14px'})
+    bubbles = []
+    for m in msgs:
+        is_mine = m['mittente'] == my_email
+        bubbles.append(
+            html.Div([
+                html.Div(m['testo'], style={
+                    'background': '#0066cc' if is_mine else '#f3f4f6',
+                    'color': 'white' if is_mine else '#1f2937',
+                    'borderRadius': '12px', 'padding': '8px 14px',
+                    'maxWidth': '70%', 'fontSize': '14px',
+                }),
+                html.Div(m['timestamp'], style={
+                    'fontSize': '11px', 'color': '#9ca3af', 'marginTop': '2px',
+                }),
+            ], style={
+                'display': 'flex', 'flexDirection': 'column',
+                'alignItems': 'flex-end' if is_mine else 'flex-start',
+                'marginBottom': '10px',
+            })
+        )
+    return html.Div(bubbles)
+
+
+def render_storico(entries: list) -> list:
+    """Renderizza lo storico assunzioni del paziente."""
+    if not entries:
+        return []
+    return [
+        html.Div([
+            html.Span(
+                v['ora'] if isinstance(v, dict) and 'ora' in v
+                else f"{v['timestamp_hour']:02d}:{v['timestamp_minute']:02d}",
+                style={'fontSize': '13px', 'fontWeight': '500',
+                       'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
+            ),
+            html.Span(
+                v['farmaco'] if isinstance(v, dict) and 'farmaco' in v else v['farmaco_nome'],
+                style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
+            ),
+            html.Span(
+                f"{v['qty'] if 'qty' in v else v['quantita_assunta']} cp",
+                style={'fontSize': '12px', 'color': '#6b7280',
+                       'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
+                       'borderRadius': '20px', 'padding': '2px 10px',
+                       'flex': '0 0 70px', 'textAlign': 'center'}
+            ),
+        ], style={
+            'display': 'flex', 'alignItems': 'center', 'gap': '8px',
+            'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
+        })
+        for v in entries
+    ]
+
 
 def render_terapie(terapie):
     return html.Div([
@@ -201,9 +259,8 @@ def daily_measurements():
         ], style={'marginBottom': '10px', 'display': 'flex', 'alignItems': 'center', 'gap': '10px'}),
     ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'flex': '0 0 40%', 'minWidth': '0'})
 
-@db_session
 def daily_medicine_assumptions():
-    farmaci = list(Farmaco.select())
+    farmaci = [f['value'] for f in model.get_tutti_farmaci()]
     return html.Div([
         html.H4('Assunzione farmaci'),
         html.P('Registra i farmaci assunti oggi:',
@@ -247,7 +304,7 @@ def daily_medicine_assumptions():
             html.Div([
                 dcc.Dropdown(
                     id='p-med-name-0',
-                    options=[{'label': f.nome, 'value': f.nome} for f in farmaci],
+                    options=farmaci,
                     placeholder='Seleziona farmaco',
                     style={'fontSize': '13px'}
                 ),
@@ -376,38 +433,38 @@ def data_analysis():
             # Riga 1
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-colazione', config={'responsive': True})
+                    dcc.Graph(id='p-graph-pre-colazione')
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-colazione', config={'responsive': True})
+                    dcc.Graph(id='p-graph-post-colazione')
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
             
             # Riga 2
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-pranzo', config={'responsive': True})
+                    dcc.Graph(id='p-graph-pre-pranzo')
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-pranzo', config={'responsive': True})
+                    dcc.Graph(id='p-graph-post-pranzo')
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
             
             # Riga 3
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-cena', config={'responsive': True})
+                    dcc.Graph(id='p-graph-pre-cena')
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-cena', config={'responsive': True})
+                    dcc.Graph(id='p-graph-post-cena')
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-            ], style={'display': 'flex', 'height': '350px'}),
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+            ], style={'display': 'flex', 'height': '250px'}),
         ], style={'display': 'flex', 'flexDirection': 'column'}),
         
         # Refresh interval
@@ -460,6 +517,7 @@ def patient_layout(session):
             # Pages navigation tabs
             navigation_tabs(),
 
+
             # Tab Dati giornalieri
             daily_data(),
 
@@ -479,3 +537,63 @@ def patient_layout(session):
             dcc.Interval(id='p-refresh', interval=5000),
         ], style=CONTAINER),
     ])
+
+
+# ── Helpers rendering ──────────────────────────────────────────────────────────
+
+def render_chat_patient(msgs: list, my_email: str) -> html.Div:
+    """Render della chat lato paziente."""
+    if not msgs:
+        return html.P('Nessun messaggio.', style={'color': '#9ca3af', 'fontSize': '14px'})
+    bubbles = []
+    for m in msgs:
+        is_mine = m['mittente'] == my_email
+        bubbles.append(
+            html.Div([
+                html.Div(m['testo'], style={
+                    'background': '#0066cc' if is_mine else '#f3f4f6',
+                    'color': 'white' if is_mine else '#1f2937',
+                    'borderRadius': '12px', 'padding': '8px 14px',
+                    'maxWidth': '70%', 'fontSize': '14px',
+                }),
+                html.Div(m['timestamp'], style={
+                    'fontSize': '11px', 'color': '#9ca3af', 'marginTop': '2px',
+                }),
+            ], style={
+                'display': 'flex', 'flexDirection': 'column',
+                'alignItems': 'flex-end' if is_mine else 'flex-start',
+                'marginBottom': '10px',
+            })
+        )
+    return html.Div(bubbles)
+
+
+def render_storico(entries: list) -> list:
+    """Render dello storico assunzioni giornaliere."""
+    if not entries:
+        return []
+    return [
+        html.Div([
+            html.Span(
+                v['ora'] if isinstance(v, dict) and 'ora' in v
+                else f"{v['timestamp_hour']:02d}:{v['timestamp_minute']:02d}",
+                style={'fontSize': '13px', 'fontWeight': '500',
+                       'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
+            ),
+            html.Span(
+                v['farmaco'] if isinstance(v, dict) and 'farmaco' in v else v['farmaco_nome'],
+                style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
+            ),
+            html.Span(
+                f"{v['qty'] if 'qty' in v else v['quantita_assunta']} cp",
+                style={'fontSize': '12px', 'color': '#6b7280',
+                       'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
+                       'borderRadius': '20px', 'padding': '2px 10px',
+                       'flex': '0 0 70px', 'textAlign': 'center'}
+            ),
+        ], style={
+            'display': 'flex', 'alignItems': 'center', 'gap': '8px',
+            'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
+        })
+        for v in entries
+    ]

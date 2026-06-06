@@ -1,9 +1,9 @@
 """Controller — callbacks del medico."""
 
 from dash import Output, Input, State, ctx, no_update, html, ALL, MATCH
-from models.model import model, Terapia, Paziente, Medico
+from models.model import model
 from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_assunzioni, render_storico_temp, messages_tab, _render_chat, edit_patient_tab
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_assunzioni, render_storico_temp, messages_tab, render_chat, edit_patient_tab
 import plotly.express as px
 
 def register_callbacks(app):
@@ -19,9 +19,12 @@ def register_callbacks(app):
             pazienti = model.get_pazienti_medico(email)
             return my_patients_tab(pazienti)
         if tab == 'view-therapies':
-            return manage_therapy_tab(email)
+            terapie = model.get_terapie_medico(email)
+            return manage_therapy_tab(terapie)
         if tab == 'add-therapy':
-            return add_therapy_tab(email)
+            pazienti_options = model.get_tutti_pazienti()
+            farmaci_options = model.get_tutti_farmaci()
+            return add_therapy_tab(pazienti_options, farmaci_options)
         if tab == 'messages':
             return messages_tab()
 
@@ -189,7 +192,7 @@ def register_callbacks(app):
         ]
         if conv:
             msgs = model.get_conversazione(medic_email, conv)
-            chat = _render_chat(msgs, medic_email)
+            chat = render_chat(msgs, medic_email)
         else:
             chat = html.P('Seleziona una conversazione.', style={'color': '#9ca3af'})
 

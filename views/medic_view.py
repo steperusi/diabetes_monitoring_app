@@ -1,8 +1,7 @@
 """View del medico."""
 
 from dash import html, dcc
-from models.model import model, Paziente, Medico, Terapia, Utente, Farmaco
-from pony.orm import db_session, select
+from models.model import model
 
 # ── Stili ─────────────────────────────────────────────────────────────────────
 HEADER = {
@@ -38,6 +37,7 @@ TABLE_ROW_ODD = {
     'background': '#ffffff', 'padding': '10px 16px',
     'fontSize': '14px', 'color': '#374151',
 }
+
 INPUT_STYLE = {
     'width': '100%', 'padding': '10px 14px',
     'border': '1px solid #d1d5db', 'borderRadius': '10px',
@@ -88,9 +88,17 @@ CHAT_BOX = {
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def _table_row(cells: list, style: dict) -> html.Div:
+    
+def _table_row(cells: list, style: dict, col_widths: list = None) -> html.Div:
+    children = []
+    for i, c in enumerate(cells):
+        if col_widths and i < len(col_widths):
+            cell_style = {'flex': f'0 0 {col_widths[i]}', 'minWidth': col_widths[i]}
+        else:
+            cell_style = {'flex': '1', 'minWidth': '60px'}
+        children.append(html.Div(c, style=cell_style))
     return html.Div(
-        [html.Div(c, style={'flex': '1', 'minWidth': '0'}) for c in cells],
+        children,
         style={**style, 'display': 'flex', 'gap': '12px',
                'borderBottom': '1px solid #f3f4f6', 'width': 'max-content',
                'minWidth': '100%'},
@@ -99,7 +107,7 @@ def _table_row(cells: list, style: dict) -> html.Div:
 def _badge(val: bool) -> html.Span:
     return html.Span('Sì' if val else 'No', style=BADGE_SI if val else BADGE_NO)
 
-def _render_chat(msgs: list, my_email: str) -> html.Div:
+def render_chat(msgs: list, my_email: str) -> html.Div:
     if not msgs:
         return html.P('Nessun messaggio.', style={'color': '9ca3af', 'fontSize': '14px'})
     
@@ -204,10 +212,11 @@ def render_storico_assunzioni(storico: list) -> list:
 
 
 # ── Schede ────────────────────────────────────────────────────────────────────
-@db_session
 def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
                'Obesità', 'Alcolista', 'Stupefacenti', '', '']
+    PATIENT_COLS = ['90px', '90px', '150px', '80px', '100px', '70px', '80px', '100px', '36px', '36px']
+    
     rows = []
     for i, p in enumerate(pazienti):
         style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
@@ -226,7 +235,7 @@ def my_patients_tab(pazienti: list) -> html.Div:
             html.Button('📊', id={'type': 'btn-view-data', 'index': p['codice_fiscale']}, n_clicks=0, style={
                 'background': 'none', 'border': '1px solid #4748AC', 'borderRadius': '6px', 'cursor': 'pointer',
                 'padding': '2px 8px', 'fontSize': '14px',}),
-        ], style))
+        ], style, PATIENT_COLS))
     return html.Div([
         html.Div(style={'display': 'flex', 'justifyContent': 'space-between',
                         'alignItems': 'flex-end', 'marginBottom': '4px'}, children=[
@@ -238,7 +247,7 @@ def my_patients_tab(pazienti: list) -> html.Div:
                       style={**INPUT_STYLE, 'width': '220px', 'marginBottom': '0'}),
         ]),
         html.Div([
-            _table_row(headers, TABLE_HEADER),
+            _table_row(headers, TABLE_HEADER, PATIENT_COLS),
             *(rows if rows else [
                 html.Div('Nessun paziente assegnato.',
                          style={'padding': '20px', 'color': '#9ca3af',
@@ -369,46 +378,47 @@ def patient_data_tab(paziente: dict) -> html.Div:
 
             html.P('Andamento delle tue misurazioni per ogni momento della giornata:', 
                     style={'fontSize': '14px', 'color': '#666'}),
-        
-        
-        # Grid di 6 grafici (2 colonne, 3 righe)
-        html.Div([
-            # Riga 1
-            html.Div([
-                html.Div([
-                    dcc.Graph(id='m-p-graph-pre-colazione', config={'responsive': True})
-                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-                html.Div([
-                    dcc.Graph(id='m-p-graph-post-colazione', config={'responsive': True})
-                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
             
-            # Riga 2
+            # Grid di 6 grafici (2 colonne, 3 righe)
             html.Div([
+                # Riga 1
                 html.Div([
-                    dcc.Graph(id='m-p-graph-pre-pranzo', config={'responsive': True})
-                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-pre-colazione')
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-post-colazione')
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                
+                # Riga 2
                 html.Div([
-                    dcc.Graph(id='m-p-graph-post-pranzo', config={'responsive': True})
-                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-pre-pranzo')
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-post-pranzo')
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                
+                # Riga 3
+                html.Div([
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-pre-cena')
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                    html.Div([
+                        dcc.Graph(id='m-p-graph-post-cena')
+                    ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
+                ], style={'display': 'flex', 'height': '250px'}),
+            ], style={'display': 'flex', 'flexDirection': 'column'}),
             
-            # Riga 3
-            html.Div([
-                html.Div([
-                    dcc.Graph(id='m-p-graph-pre-cena', config={'responsive': True})
-                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-                html.Div([
-                    dcc.Graph(id='m-p-graph-post-cena', config={'responsive': True})
-                ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
-                    'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'visible'}),
-            ], style={'display': 'flex', 'height': '350px'}),
-        ], style={'display': 'flex', 'flexDirection': 'column'}),
+            # Refresh interval
             dcc.Interval(id='p-data-refresh', interval=5000),
         ]),
 
@@ -417,19 +427,10 @@ def patient_data_tab(paziente: dict) -> html.Div:
     
     ], style=CARD)
     
-@db_session
-def manage_therapy_tab(email: str):
-    utente = Utente.get(email=email)
-    medico = Medico.get(utente=utente)
-
-    if not medico:
-        return html.Div('Medico non trovato.', style={'color': '#dc2626', 'padding': '20px'})
-
-    terapie = list(medico.terapie)
-
-    def _assunzioni_detail(terapia) -> html.Div:
+def manage_therapy_tab(terapie: list) -> html.Div:
+    def _assunzioni_detail(terapia: dict) -> html.Div:
         """Sotto-tabella assunzioni espandibile."""
-        assunzioni = list(terapia.assunzioni_giornaliere)
+        assunzioni = terapia.get('assunzioni', [])
         if not assunzioni:
             return html.Div('Nessuna assunzione registrata.',
                             style={'padding': '10px 16px', 'color': '#9ca3af', 'fontSize': '13px'})
@@ -439,12 +440,12 @@ def manage_therapy_tab(email: str):
         )
         righe = [
             _table_row([
-                a.orario.capitalize(),
-                a.farmaco_nome.nome,
-                str(a.quantita),
-                a.unita_misura,
+                a['orario'].capitalize(),
+                a['farmaco_nome'],
+                str(a['quantita']),
+                a['unita_misura'],
             ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
-            for i, a in enumerate(sorted(assunzioni, key=lambda x: _fascia_ordine(x.orario)))
+            for i, a in enumerate(sorted(assunzioni, key=lambda x: _fascia_ordine(x['orario'])))
         ]
         return html.Div([header] + righe,
                         style={'borderTop': '1px solid #e5e7eb', 'background': '#fafbff'})
@@ -454,11 +455,10 @@ def manage_therapy_tab(email: str):
     for i, t in enumerate(terapie):
         row_style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
         rows.append(html.Div([
-            # Riga principale con freccia
             _table_row([
                 html.Button(
                     '▶',
-                    id={'type': 'btn-expand-therapy', 'index': t.id},
+                    id={'type': 'btn-expand-therapy', 'index': t['id']},
                     n_clicks=0,
                     style={
                         'background': 'none', 'border': 'none',
@@ -467,13 +467,12 @@ def manage_therapy_tab(email: str):
                         'transition': 'transform 0.2s',
                     },
                 ),
-                f"{t.paziente.utente.nome} {t.paziente.utente.cognome}",
-                str(t.data_inizio),
-                str(t.data_fine) if t.data_fine else '—',
+                t['paziente_nome'],
+                t['data_inizio'],
+                t['data_fine'] if t['data_fine'] else '—',
             ], row_style),
-            # Dettaglio assunzioni (inizialmente nascosto)
             html.Div(
-                id={'type': 'therapy-detail', 'index': t.id},
+                id={'type': 'therapy-detail', 'index': t['id']},
                 children=_assunzioni_detail(t),
                 style={'display': 'none'},
             ),
@@ -496,21 +495,11 @@ def manage_therapy_tab(email: str):
                          style={'padding': '20px', 'color': '#9ca3af',
                                 'fontSize': '14px', 'textAlign': 'center'}),
             ]),
-        ], style={'borderRadius': '12px', 'overflowX': 'auto',
-                  'minWidth': '0', 'border': '1px solid #e5e7eb'}),
+        ], style={'borderRadius': '12px', 'overflow': 'hidden', 'minWidth': '0', 'border': '1px solid #e5e7eb'}),
     ], style=CARD)
 
 
-@db_session
-def add_therapy_tab(email: str):
-    pazienti_options = [
-        {'label': f"{p.utente.nome} {p.utente.cognome}", 'value': p.utente.email}
-        for p in list(Paziente.select())
-    ]
-    farmaci_options = [
-        {'label': f.nome, 'value': f.nome} for f in list(Farmaco.select())
-    ]
-
+def add_therapy_tab(pazienti_options: list, farmaci_options: list) -> html.Div:
     return html.Div([
         html.Div('Inserimento', style=SECTION_TITLE),
         html.Div('Aggiungi una terapia scegliendo il paziente, le date e le assunzioni.', style=SECTION_SUBTITLE),
@@ -655,5 +644,5 @@ def medic_layout(session: dict) -> html.Div:
 
         # Store per passare l'email al controller senza rifare il login
         dcc.Store(id='medic-email', data=session.get('email')),
-        dcc.Interval(id='m-refresh', interval=5000),
+        dcc.Interval(id='m-refresh', interval=3000),
     ])

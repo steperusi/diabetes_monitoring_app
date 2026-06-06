@@ -738,6 +738,51 @@ class OrmModel:
                  'quantita_assunta': a.quantita_assunta}
                  for a in assunzioni_sorted]
 
+    # ---- query di supporto alle view ----------------------------------------
+    @db_session
+    def get_tutti_pazienti(self) -> list[dict]:
+        return [
+            {'label': f"{p.utente.nome} {p.utente.cognome}", 'value': p.utente.email}
+            for p in list(Paziente.select())
+        ]
+
+    @db_session
+    def get_tutti_farmaci(self) -> list[dict]:
+        return [
+            {'label': f.nome, 'value': f.nome}
+            for f in list(Farmaco.select())
+        ]
+
+    # ---- validazione lato business ------------------------------------------
+    def validate_misurazione(self, valore, momento_type: str) -> tuple[str, str]:
+        """Restituisce (simbolo, colore_hex) per un valore glicemico."""
+        if valore is None:
+            return '-', '#9ca3af'
+        try:
+            val = float(valore)
+        except (ValueError, TypeError):
+            return '-', '#9ca3af'
+        if 'pre_' in momento_type:
+            return ('✓', '#22c55e') if 80 <= val <= 130 else ('✗', '#ef4444')
+        else:
+            return ('✓', '#22c55e') if val <= 180 else ('✗', '#ef4444')
+
+    @db_session
+    def validate_farmaco_in_terapia(self, patient_email: str, farmaco_nome: str) -> tuple[str, str]:
+        """Controlla se il farmaco è nella terapia attiva del paziente."""
+        if not farmaco_nome:
+            return '-', '#9ca3af'
+        try:
+            terapie = self.get_terapie_paziente(patient_email)
+            farmaci_prescritti = [
+                a['farmaco']
+                for t in terapie
+                for a in t['assunzioni']
+            ]
+            return ('✓', '#22c55e') if farmaco_nome.strip() in farmaci_prescritti else ('✗', '#ef4444')
+        except Exception:
+            return '✗', '#ef4444'
+
     #------ Chat -----------------------------------------------------------------  
     @db_session
     def invia_messaggio(self, mittente_email: str, destinatario_email: str, testo: str):
@@ -765,5 +810,59 @@ class OrmModel:
             }
             for m in messaggi
         ]
+
+    @db_session
+    def get_terapie_medico(self, medico_email: str) -> list[dict]:
+        u = Utente.get(email=medico_email)
+        m = Medico.get(utente=u)
+        if not m:
+            return []
+        return [
+            {
+                'id': t.id,
+                'paziente_nome': f"{t.paziente.utente.nome} {t.paziente.utente.cognome}",
+                'data_inizio': str(t.data_inizio),
+                'data_fine': str(t.data_fine) if t.data_fine else None,
+                'assunzioni': [
+                    {
+                        'orario': a.orario,
+                        'farmaco_nome': a.farmaco_nome.nome,
+                        'quantita': a.quantita,
+                        'unita_misura': a.unita_misura,
+                    }
+                    for a in t.assunzioni_giornaliere
+                ],
+            }
+            for t in m.terapie
+        ]
+
+    @staticmethod
+    def validate_measurement(value, momento_type: str) -> tuple[str, str]:
+        """Valida una misurazione glicemica. Ritorna (simbolo, colore_hex)."""
+        if value is None:
+            return '-', '#9ca3af'
+        try:
+            val = float(value)
+        except (ValueError, TypeError):
+            return '-', '#9ca3af'
+        if 'pre_' in momento_type:
+            return ('✓', '#22c55e') if 80 <= val <= 130 else ('✗', '#ef4444')
+        else:
+            return ('✓', '#22c55e') if val <= 180 else ('✗', '#ef4444')
+
+    @db_session
+    def validate_medicine_entry(self, session_email: str, hour, minute, medicine_name, quantity) -> tuple[str, str]:
+        """Valida un'assunzione farmaco rispetto alla terapia attiva. Ritorna (simbolo, colore_hex)."""
+        if hour is None or minute is None or not medicine_name or not quantity:
+            return '-', '#9ca3af'
+        try:
+            terapie = self.get_terapie_paziente(session_email)
+            farmaci_in_terapia = [a['farmaco'] for t in terapie for a in t['assunzioni']]
+            if str(medicine_name).strip() in farmaci_in_terapia:
+                return '✓', '#22c55e'
+            return '✗', '#ef4444'
+        except Exception:
+            return '✗', '#ef4444'
+
 
 model = OrmModel()

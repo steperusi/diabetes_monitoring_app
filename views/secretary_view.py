@@ -130,7 +130,7 @@ def patients_tab():
                          style={'padding': '20px', 'color': '#9ca3af',
                                 'fontSize': '14px', 'textAlign': 'center'}),
             ]),
-        ], style={'borderRadius': '12px', 'overflowX': 'auto', 'minWidth': '0',
+        ], style={'borderRadius': '12px', 'overflow': 'hidden', 'minWidth': '0',
                   'border': '1px solid #e5e7eb'}),
     ], style=CARD)
 
@@ -167,7 +167,7 @@ def medics_tab():
                          style={'padding': '20px', 'color': '#9ca3af',
                                 'fontSize': '14px', 'textAlign': 'center'}),
             ]),
-        ], style={'borderRadius': '12px', 'overflowX': 'auto', 'minWidth': '0',
+        ], style={'borderRadius': '12px', 'overflow': 'hidden', 'minWidth': '0',
                   'border': '1px solid #e5e7eb'}),
     ], style=CARD)
 
