@@ -346,21 +346,39 @@ def register_callbacks(app):
                 
                 fig.update_layout(
                     hovermode='x unified',
-                    margin=dict(l=40, r=100, t=50, b=40),
+                    margin=dict(l=50, r=60, t=50, b=60),
                     xaxis_title='Data',
                     yaxis_title='mg/dl',
                     showlegend=False,
+                    height=350,
+                    plot_bgcolor='#fafafa',
+                    paper_bgcolor='white',
                 )
-                fig.update_xaxes(tickformat='%d/%m', showticklabels=True)
+                fig.update_xaxes(
+                    tickformat='%d/%m', 
+                    showticklabels=True,
+                    automargin=True,
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='#e5e7eb'
+                )
+                fig.update_yaxes(
+                    showticklabels=True,
+                    automargin=True,
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='#e5e7eb',
+                    zeroline=False
+                )
                 
                 # Aggiungi linee di riferimento per i valori normali
                 if 'pre_' in momento_key:
                     # Prima dei pasti: 80-130
-                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min (80)', annotation_position='right')
-                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max (130)', annotation_position='right')
+                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min(80)', annotation_position='right')
+                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max(130)', annotation_position='right')
                 else:
                     # Dopo i pasti: sotto 180
-                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max (180)', annotation_position='right')
+                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max(180)', annotation_position='right')
             else:
                 fig = px.line(title=f'Nessun dato per {momento_label}')
                 fig.update_layout(template='plotly_white')

@@ -88,35 +88,83 @@ def render_chat_patient(msgs: list, my_email: str) -> html.Div:
     return html.Div(bubbles)
 
 
-def render_storico(entries: list) -> list:
-    """Renderizza lo storico assunzioni del paziente."""
+def render_storico(entries: list, session_email: str = None) -> list:
+    """Renderizza lo storico assunzioni del paziente con validazione opzionale."""
     if not entries:
         return []
-    return [
-        html.Div([
+    
+    result = []
+    for v in entries:
+        # Parse ora/time info
+        ora_str = v.get('ora') if isinstance(v, dict) and 'ora' in v else None
+        if not ora_str:
+            hour = v.get('timestamp_hour', 0)
+            minute = v.get('timestamp_minute', 0)
+            ora_str = f"{hour:02d}:{minute:02d}"
+        else:
+            try:
+                parts = ora_str.split(':')
+                hour = int(parts[0])
+                minute = int(parts[1])
+            except:
+                hour, minute = 0, 0
+        
+        # Get medicine name
+        medicine_name = v.get('farmaco') if isinstance(v, dict) and 'farmaco' in v else v.get('farmaco_nome', '')
+        
+        # Get quantity and unit
+        quantity = v.get('qty') if isinstance(v, dict) and 'qty' in v else v.get('quantita_assunta', '')
+        unita_misura = v.get('unita_misura', 'N/D')
+        
+        # Validate if session_email is provided
+        if session_email:
+            # Import here to avoid circular imports
+            from controllers.patient_controller import _validate_medicine_entry
+            symbol, color = _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity)
+            has_status = True
+        else:
+            symbol, color = '-', '#9ca3af'
+            has_status = False
+        
+        # Build row
+        row_items = [
             html.Span(
-                v['ora'] if isinstance(v, dict) and 'ora' in v
-                else f"{v['timestamp_hour']:02d}:{v['timestamp_minute']:02d}",
+                ora_str,
                 style={'fontSize': '13px', 'fontWeight': '500',
                        'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
             ),
             html.Span(
-                v['farmaco'] if isinstance(v, dict) and 'farmaco' in v else v['farmaco_nome'],
+                medicine_name,
                 style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
             ),
             html.Span(
-                f"{v['qty'] if 'qty' in v else v['quantita_assunta']} cp",
+                f"{quantity} {unita_misura}",
                 style={'fontSize': '12px', 'color': '#6b7280',
                        'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
                        'borderRadius': '20px', 'padding': '2px 10px',
                        'flex': '0 0 70px', 'textAlign': 'center'}
             ),
-        ], style={
-            'display': 'flex', 'alignItems': 'center', 'gap': '8px',
-            'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
-        })
-        for v in entries
-    ]
+        ]
+        
+        # Add status indicator if validation was performed
+        if has_status:
+            row_items.append(
+                html.Span(
+                    symbol,
+                    style={'fontSize': '16px', 'fontWeight': 'bold', 'color': color,
+                           'flex': '0 0 30px', 'textAlign': 'center'}
+                )
+            )
+        
+        result.append(html.Div(
+            row_items,
+            style={
+                'display': 'flex', 'alignItems': 'center', 'gap': '8px',
+                'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
+            }
+        ))
+    
+    return result
 
 
 def render_terapie(terapie):
@@ -433,38 +481,38 @@ def data_analysis():
             # Riga 1
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-colazione')
+                    dcc.Graph(id='p-graph-pre-colazione', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-colazione')
+                    dcc.Graph(id='p-graph-post-colazione', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
             
             # Riga 2
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-pranzo')
+                    dcc.Graph(id='p-graph-pre-pranzo', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-pranzo')
+                    dcc.Graph(id='p-graph-post-pranzo', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+            ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
             
             # Riga 3
             html.Div([
                 html.Div([
-                    dcc.Graph(id='p-graph-pre-cena')
+                    dcc.Graph(id='p-graph-pre-cena', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                 html.Div([
-                    dcc.Graph(id='p-graph-post-cena')
+                    dcc.Graph(id='p-graph-post-cena', config={'responsive': True})
                 ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-            ], style={'display': 'flex', 'height': '250px'}),
+            ], style={'display': 'flex', 'height': '350px'}),
         ], style={'display': 'flex', 'flexDirection': 'column'}),
         
         # Refresh interval
@@ -537,63 +585,3 @@ def patient_layout(session):
             dcc.Interval(id='p-refresh', interval=5000),
         ], style=CONTAINER),
     ])
-
-
-# ── Helpers rendering ──────────────────────────────────────────────────────────
-
-def render_chat_patient(msgs: list, my_email: str) -> html.Div:
-    """Render della chat lato paziente."""
-    if not msgs:
-        return html.P('Nessun messaggio.', style={'color': '#9ca3af', 'fontSize': '14px'})
-    bubbles = []
-    for m in msgs:
-        is_mine = m['mittente'] == my_email
-        bubbles.append(
-            html.Div([
-                html.Div(m['testo'], style={
-                    'background': '#0066cc' if is_mine else '#f3f4f6',
-                    'color': 'white' if is_mine else '#1f2937',
-                    'borderRadius': '12px', 'padding': '8px 14px',
-                    'maxWidth': '70%', 'fontSize': '14px',
-                }),
-                html.Div(m['timestamp'], style={
-                    'fontSize': '11px', 'color': '#9ca3af', 'marginTop': '2px',
-                }),
-            ], style={
-                'display': 'flex', 'flexDirection': 'column',
-                'alignItems': 'flex-end' if is_mine else 'flex-start',
-                'marginBottom': '10px',
-            })
-        )
-    return html.Div(bubbles)
-
-
-def render_storico(entries: list) -> list:
-    """Render dello storico assunzioni giornaliere."""
-    if not entries:
-        return []
-    return [
-        html.Div([
-            html.Span(
-                v['ora'] if isinstance(v, dict) and 'ora' in v
-                else f"{v['timestamp_hour']:02d}:{v['timestamp_minute']:02d}",
-                style={'fontSize': '13px', 'fontWeight': '500',
-                       'flex': '0 0 25%', 'textAlign': 'center', 'color': '#1f2937'}
-            ),
-            html.Span(
-                v['farmaco'] if isinstance(v, dict) and 'farmaco' in v else v['farmaco_nome'],
-                style={'fontSize': '13px', 'flex': '1', 'color': '#1f2937'}
-            ),
-            html.Span(
-                f"{v['qty'] if 'qty' in v else v['quantita_assunta']} cp",
-                style={'fontSize': '12px', 'color': '#6b7280',
-                       'background': '#f3f4f6', 'border': '1px solid #e5e7eb',
-                       'borderRadius': '20px', 'padding': '2px 10px',
-                       'flex': '0 0 70px', 'textAlign': 'center'}
-            ),
-        ], style={
-            'display': 'flex', 'alignItems': 'center', 'gap': '8px',
-            'padding': '6px 4px', 'borderBottom': '1px solid #f3f4f6',
-        })
-        for v in entries
-    ]

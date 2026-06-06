@@ -215,7 +215,7 @@ def render_storico_assunzioni(storico: list) -> list:
 def my_patients_tab(pazienti: list) -> html.Div:
     headers = ['Nome', 'Cognome', 'Cod. Fiscale', 'Fumatore', 'Ex-fumatore',
                'Obesità', 'Alcolista', 'Stupefacenti', '', '']
-    PATIENT_COLS = ['90px', '90px', '150px', '80px', '100px', '70px', '80px', '100px', '36px', '36px']
+    PATIENT_COLS = ['80px', '80px', '150px', '70px', '80px', '60px', '60px', '80px', '32px', '32px']
     
     rows = []
     for i, p in enumerate(pazienti):
@@ -384,38 +384,38 @@ def patient_data_tab(paziente: dict) -> html.Div:
                 # Riga 1
                 html.Div([
                     html.Div([
-                        dcc.Graph(id='m-p-graph-pre-colazione')
+                        dcc.Graph(id='m-p-graph-pre-colazione', config={'responsive': True})
                     ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                     html.Div([
-                        dcc.Graph(id='m-p-graph-post-colazione')
+                        dcc.Graph(id='m-p-graph-post-colazione', config={'responsive': True})
                     ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
                 
                 # Riga 2
                 html.Div([
                     html.Div([
-                        dcc.Graph(id='m-p-graph-pre-pranzo')
+                        dcc.Graph(id='m-p-graph-pre-pranzo', config={'responsive': True})
                     ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                     html.Div([
-                        dcc.Graph(id='m-p-graph-post-pranzo')
+                        dcc.Graph(id='m-p-graph-post-pranzo', config={'responsive': True})
                     ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '250px'}),
+                ], style={'display': 'flex', 'marginBottom': '20px', 'height': '350px'}),
                 
                 # Riga 3
                 html.Div([
                     html.Div([
-                        dcc.Graph(id='m-p-graph-pre-cena')
+                        dcc.Graph(id='m-p-graph-pre-cena', config={'responsive': True})
                     ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginRight': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
                     html.Div([
-                        dcc.Graph(id='m-p-graph-post-cena')
+                        dcc.Graph(id='m-p-graph-post-cena', config={'responsive': True})
                     ], style={'background': '#ffffff', 'borderRadius': '12px', 'padding': '12px', 'border': '1px solid #e5e7eb',
                     'boxShadow': '0 2px 8px rgba(0,0,0,0.05)', 'flex': '1', 'marginLeft': '5px', 'minWidth': '0', 'overflow': 'hidden'}),
-                ], style={'display': 'flex', 'height': '250px'}),
+                ], style={'display': 'flex', 'height': '350px'}),
             ], style={'display': 'flex', 'flexDirection': 'column'}),
             
             # Refresh interval

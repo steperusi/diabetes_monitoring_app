@@ -720,6 +720,14 @@ class OrmModel:
         return True
     
     @db_session
+    def get_farmaco_unita_misura(self, nome_farmaco):
+        """Ritorna l'unita_misura di un farmaco."""
+        farmaco = Farmaco.get(nome=nome_farmaco)
+        if not farmaco:
+            farmaco = Farmaco.get(nome='ALTRO')
+        return farmaco.unita_misura if farmaco else 'N/D'
+    
+    @db_session
     def get_assunzioni_by_date(self, patient_email, data_assunzione):
         p = Paziente.get(utente=patient_email)
         if not p:
@@ -735,7 +743,8 @@ class OrmModel:
                  'timestamp_hour': a.timestamp.hour,
                  'timestamp_minute': a.timestamp.minute,
                  'farmaco_nome': a.farmaco.nome,
-                 'quantita_assunta': a.quantita_assunta}
+                 'quantita_assunta': a.quantita_assunta,
+                 'unita_misura': a.unita_misura}
                  for a in assunzioni_sorted]
 
     # ---- query di supporto alle view ----------------------------------------

@@ -2,7 +2,7 @@ from dash import Output, Input, State, ctx, html, no_update, ALL
 import plotly.express as px
 from models.model import model
 from datetime import date, datetime
-from views.patient_view import render_terapie, render_chat_patient, render_storico, render_chat_patient, render_storico
+from views.patient_view import render_terapie, render_chat_patient, render_storico
 
 MOMENTI = {
     'pre_colazione': 'p-meas-breakfast-before',
@@ -15,10 +15,90 @@ MOMENTI = {
 
 SHOW = {'display': 'block'}
 HIDE = {'display': 'none'}
+
+def _validate_measurement(value, momento_type):
+    if value is None:
+        return '-', '#9ca3af'  # gray for empty
     
+    try:
+        val = float(value)
+    except (ValueError, TypeError):
+        return '-', '#9ca3af'
     
+    # Pre-meals: 80-130 mg/dl is good
+    if 'pre_' in momento_type:
+        if 80 <= val <= 130:
+            return '✓', '#22c55e'  # green
+        else:
+            return '✗', '#ef4444'  # red
+    # Post-meals: <= 180 mg/dl is good
+    else:
+        if val <= 180:
+            return '✓', '#22c55e'  # green
+        else:
+            return '✗', '#ef4444'  # red
+
+
+def _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity):
+    """
+    Validates a medicine entry against therapy.
+    Checks: medicine exists in therapy, time window is correct, quantity matches.
+    Returns: ('✓', 'green') for valid, ('✗', 'red') for invalid, ('-', 'gray') for empty/incomplete
+    """
+    # If any field is empty, return gray
+    if hour is None or minute is None or not medicine_name or not quantity:
+        return '-', '#9ca3af'  # gray for empty
     
-        
+    # Define time windows for each meal (fascia)
+    FASCE_WINDOWS = {
+        'colazione': (6, 11),    # 6:00 to 11:59
+        'pranzo': (11, 15),      # 11:00 to 15:59
+        'cena': (18, 22),        # 18:00 to 22:59
+    }
+    
+    # Determine which fascia the current hour belongs to
+    current_fascia = None
+    for fascia, (start_hour, end_hour) in FASCE_WINDOWS.items():
+        if start_hour <= hour < end_hour:
+            current_fascia = fascia
+            break
+    
+    # If hour is outside all time windows, invalid
+    if not current_fascia:
+        return '✗', '#ef4444'  # red - outside meal times
+    
+    # Get patient's therapies
+    terapie = model.get_terapie_paziente(session_email)
+    
+    # Check if medicine exists in therapy for the current fascia with matching quantity
+    medicine_str = str(medicine_name).strip()
+    quantity_str = str(quantity).strip()
+    
+    try:
+        prescribed_quantity = float(quantity_str)
+    except (ValueError, TypeError):
+        return '✗', '#ef4444'  # red - invalid quantity format
+    
+    # Look through all therapies and their assunzioni
+    for terapia in terapie:
+        for assunzione in terapia.get('assunzioni', []):
+            fascia = assunzione['orario'].lower().strip()
+            farmaco = assunzione['farmaco'].strip()
+            prescribed_qty = float(assunzione['quantita'])
+            
+            # Check if this is the medicine we're looking for
+            if farmaco == medicine_str:
+                # Check if fascia matches
+                if fascia == current_fascia:
+                    # Check if quantity matches
+                    if abs(prescribed_qty - prescribed_quantity) < 0.01:  # Allow small floating point difference
+                        return '✓', '#22c55e'  # green - all match
+                    else:
+                        return '✗', '#ef4444'  # red - quantity mismatch
+                # Medicine found but wrong fascia
+    
+    # Medicine not found in any therapy, or not for this fascia
+    return '✗', '#ef4444'  # red
 
 
 def register_callbacks(app):
@@ -54,8 +134,8 @@ def register_callbacks(app):
             Input(f'p-meas-{field_name}', 'value'),
         )
         def update_meas_status(value):
-            symbol, color = model.validate_misurazione(value, momento_type)
-            return symbol, {'fontSize': '18px', 'color': color}
+            symbol, color = _validate_measurement(value, momento_type)
+            return symbol, {'fontSize': '18px', 'color': color}, {'fontSize': '18px', 'color': color}
         return update_meas_status
     
     for field_name, momento_type in measurement_fields:
@@ -126,11 +206,12 @@ def register_callbacks(app):
             if not session or not ass_date:
                 return None, None, None, None, [], [], no_update
             assunzioni = model.get_assunzioni_by_date(session['email'], ass_date)
-            voci = render_storico(assunzioni)
+            voci = render_storico(assunzioni, session['email'])
             store = [
                 {'ora': f"{a['timestamp_hour']:02d}:{a['timestamp_minute']:02d}",
                 'farmaco': a['farmaco_nome'],
-                'qty': a['quantita_assunta']}
+                'qty': a['quantita_assunta'],
+                'unita_misura': a.get('unita_misura', 'N/D')}
                 for a in assunzioni
             ]
             return None, None, None, None, voci, store, no_update
@@ -167,8 +248,9 @@ def register_callbacks(app):
                 try:
                     if model.create_assunzione(session['email'], ass_date,
                                             int(h0), int(m0), nome_str, qty_str):
+                        unita = model.get_farmaco_unita_misura(nome_str)
                         store = store + [{'ora': f'{int(h0):02d}:{int(m0):02d}',
-                                        'farmaco': nome_str, 'qty': qty_str}]
+                                        'farmaco': nome_str, 'qty': qty_str, 'unita_misura': unita}]
                         total_saved += 1
                     else:
                         total_errors += 1
@@ -176,7 +258,7 @@ def register_callbacks(app):
                     print(f'Errore save assunzione: {e}')
                     total_errors += 1
 
-            voci = render_storico(store)
+            voci = render_storico(store, session['email'])
             msg = ('Salvati con successo' if total_saved > 0 and total_errors == 0
                 else f'Salvati ({total_saved}/{total_saved + total_errors})' if total_saved > 0
                 else 'Errore nel salvataggio.')
@@ -463,21 +545,39 @@ def register_callbacks(app):
                 
                 fig.update_layout(
                     hovermode='x unified',
-                    margin=dict(l=40, r=100, t=50, b=40),
+                    margin=dict(l=50, r=60, t=50, b=60),
                     xaxis_title='Data',
                     yaxis_title='mg/dl',
                     showlegend=False,
+                    height=350,
+                    plot_bgcolor='#fafafa',
+                    paper_bgcolor='white',
                 )
-                fig.update_xaxes(tickformat='%d/%m', showticklabels=True)
+                fig.update_xaxes(
+                    tickformat='%d/%m', 
+                    showticklabels=True,
+                    automargin=True,
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='#e5e7eb'
+                )
+                fig.update_yaxes(
+                    showticklabels=True,
+                    automargin=True,
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='#e5e7eb',
+                    zeroline=False
+                )
                 
                 # Aggiungi linee di riferimento per i valori normali
                 if 'pre_' in momento_key:
                     # Prima dei pasti: 80-130
-                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min (80)', annotation_position='right')
-                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max (130)', annotation_position='right')
+                    fig.add_hline(y=80, line_dash='dash', line_color='gray', annotation_text='Min(80)', annotation_position='right')
+                    fig.add_hline(y=130, line_dash='dash', line_color='gray', annotation_text='Max(130)', annotation_position='right')
                 else:
                     # Dopo i pasti: sotto 180
-                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max (180)', annotation_position='right')
+                    fig.add_hline(y=180, line_dash='dash', line_color='gray', annotation_text='Max(180)', annotation_position='right')
             else:
                 fig = px.line(title=f'Nessun dato per {momento_label}')
                 fig.update_layout(template='plotly_white')
