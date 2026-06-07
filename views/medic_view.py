@@ -319,33 +319,50 @@ def edit_patient_tab(paziente: dict) -> html.Div:
                          style={**INPUT_STYLE, 'minHeight': '80px',
                                 'fontFamily': '"Inter", "Segoe UI", sans-serif'}),
         ], style={'marginTop': '8px'}),
+        
+        
 
         # Fattori di rischio
         html.Div([
             html.Label('Fattori di rischio', style={**LABEL_STYLE, 'marginBottom': '10px'}),
-            dcc.Checklist(
-                id='edit-p-flags',
-                options=[
-                    {'label': '  Fumatore',                   'value': 'fumatore'},
-                    {'label': '  Ex fumatore',                'value': 'ex_fumatore'},
-                    {'label': '  Obesità',                    'value': 'obesita'},
-                    {'label': '  Problemi con alcol',         'value': 'problemi_alcol'},
-                    {'label': '  Dipendenza da stupefacenti', 'value': 'problemi_stupefacenti'},
-                ],
-                value=flags_attuali,
-                inputStyle={'marginRight': '8px'},
-                labelStyle={'display': 'flex', 'alignItems': 'center',
-                            'fontSize': '14px', 'color': '#374151', 'padding': '6px 0'},
-            ),
+            *[
+                html.Div([
+                    html.Div([
+                        dcc.Checklist(
+                            id=f'edit-p-flag-{flag}',
+                            options=[{'label': f'  {label}', 'value': flag}],
+                            value=[flag] if paziente.get(flag if flag != 'ex_fumatore' else 'ex-fumatore') else [],
+                            inputStyle={'marginRight': '8px'},
+                            labelStyle={'display': 'flex', 'alignItems': 'center',
+                                        'fontSize': '14px', 'color': '#374151'},
+                        ),
+                    ], style={'flex': '1'}),
+                    html.Div([
+                        html.Span('Ultima modifica: ', style={'fontSize': '11px', 'color': '#9ca3af'}),
+                        html.Span(paziente.get(f'ultima_modifica_{flag}', '—'),
+                                style={'fontSize': '11px', 'color': '#6b7280', 'fontWeight': '600'}),
+                    ], style={'textAlign': 'right', 'alignSelf': 'center'}),
+                ], style={'display': 'flex', 'justifyContent': 'space-between',
+                        'alignItems': 'center', 'padding': '6px 0',
+                        'borderBottom': '1px solid #f3f4f6'})
+                for flag, label in [
+                    ('fumatore',                 'Fumatore'),
+                    ('ex_fumatore',              'Ex fumatore'),
+                    ('obesita',                  'Obesità'),
+                    ('problemi_alcol',           'Problemi con alcol'),
+                    ('problemi_stupefacenti',    'Dipendenza da stupefacenti'),
+                ]
+            ],
         ], style={'marginTop': '16px', 'marginBottom': '16px', 'padding': '16px',
-                  'borderRadius': '10px', 'border': '1px solid #e5e7eb',
-                  'backgroundColor': '#f9fafb'}),
-
+                'borderRadius': '10px', 'border': '1px solid #e5e7eb',
+                'backgroundColor': '#f9fafb'}),
+        
         html.Div(id='msg-edit-patient', style={'marginTop': '8px', 'fontSize': '13px'}),
         html.Button('Salva Modifiche', id='btn-save-edit-patient', n_clicks=0, style=BTN_PRIMARY),
 
         # Store con il CF del paziente in modifica
         dcc.Store(id='editing-patient-cf', data=paziente.get('codice_fiscale')),
+
     ], style=CARD)
 
 def patient_data_tab(paziente: dict) -> html.Div:

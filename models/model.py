@@ -38,6 +38,13 @@ class Utente(diabete_db.Entity):
     messaggi_inviati = Set('Messaggio', reverse='mittente')
     messaggi_ricevuti = Set('Messaggio', reverse='destinatario')
 
+    modifiche_fumatore = Set('Paziente', reverse='ultima_modifica_fumatore')
+    modifiche_ex_fumatore = Set('Paziente', reverse='ultima_modifica_ex_fumatore')
+    modifiche_obesita = Set('Paziente', reverse='ultima_modifica_obesita')
+    modifiche_problemi_alcol = Set('Paziente', reverse='ultima_modifica_problemi_alcol')
+    modifiche_problemi_stupefacenti = Set('Paziente', reverse='ultima_modifica_problemi_stupefacenti')
+    modifiche_comorbidita = Set('Paziente', reverse='ultima_modifica_comorbidita')
+
     
 class Segretario(diabete_db.Entity):#serve solo per inserimento nuovi pazienti
     _table_ = 'segretario'
@@ -60,12 +67,18 @@ class Paziente(diabete_db.Entity):
     codice_fiscale = Required(str, unique=True)
     
     fumatore = Required(bool, default=False)
+    ultima_modifica_fumatore              = Optional('Utente', reverse='modifiche_fumatore')
     ex_fumatore = Required(bool, default=False)
+    ultima_modifica_ex_fumatore           = Optional('Utente', reverse='modifiche_ex_fumatore')
     obesita = Required(bool, default=False)
+    ultima_modifica_obesita               = Optional('Utente', reverse='modifiche_obesita')
     problemi_alcol = Required(bool, default=False)
+    ultima_modifica_problemi_alcol        = Optional('Utente', reverse='modifiche_problemi_alcol')
     problemi_stupefacenti = Required(bool, default=False)
+    ultima_modifica_problemi_stupefacenti = Optional('Utente', reverse='modifiche_problemi_stupefacenti')
     comorbidita = Optional(LongStr)
-    
+    ultima_modifica_comorbidita           = Optional('Utente', reverse='modifiche_comorbidita')
+
     misurazioni = Set('Misurazione')
     assunzioni = Set('Assunzione')
     segnalazioni = Set('Segnalazione')
@@ -154,7 +167,10 @@ class OrmModel:
         Medico(utente=u_med, matricola='MED001')
         
         u_paz = Utente(email='marcoverdi@paziente.it', nome='Marco', cognome='Verdi', password='MarcoV123', ruolo='paziente')
-        Paziente(utente=u_paz, medico_riferimento=Medico.get(utente=u_med), codice_fiscale='VRDMRC80A01H501A')
+        Paziente(utente=u_paz, medico_riferimento=Medico.get(utente=u_med), codice_fiscale='VRDMRC80A01H501A',
+                 ultima_modifica_fumatore=u_segr, ultima_modifica_ex_fumatore=u_segr,
+                 ultima_modifica_obesita=u_segr, ultima_modifica_problemi_alcol=u_segr,
+                 ultima_modifica_problemi_stupefacenti=u_segr, ultima_modifica_comorbidita=u_segr)
         
         commit()
     
@@ -202,7 +218,7 @@ class OrmModel:
         commit()
         
     @db_session
-    def crea_paziente(self, nome, cognome, email, cf, medico_id, password,
+    def crea_paziente(self, nome, cognome, email, cf, medico_id, password, segretario_email=None,
                     fumatore=False, ex_fumatore=False, obesita=False,
                     problemi_alcol=False, problemi_stupefacenti=False):
         u = Utente(
@@ -214,6 +230,9 @@ class OrmModel:
         )
         medico = Medico.get(utente=Utente.get(email=medico_id))
         
+        # Ottieni l'utente del segretario che crea il paziente
+        segretario = Utente.get(email=segretario_email) if segretario_email else None
+        
         Paziente(
             utente=u,
             medico_riferimento=medico,
@@ -223,6 +242,12 @@ class OrmModel:
             obesita=obesita,
             problemi_alcol=problemi_alcol,
             problemi_stupefacenti=problemi_stupefacenti,
+            ultima_modifica_fumatore=segretario,
+            ultima_modifica_ex_fumatore=segretario,
+            ultima_modifica_obesita=segretario,
+            ultima_modifica_problemi_alcol=segretario,
+            ultima_modifica_problemi_stupefacenti=segretario,
+            ultima_modifica_comorbidita=segretario,
         )
         commit()
 
@@ -280,7 +305,13 @@ class OrmModel:
                 'obesita': p.obesita,
                 'problemi_alcol': p.problemi_alcol,
                 'problemi_stupefacenti': p.problemi_stupefacenti,
-                'comorbidita': p.comorbidita or ''
+                'comorbidita': p.comorbidita or '',
+                'ultima_modifica_fumatore': f"{p.ultima_modifica_fumatore.nome} {p.ultima_modifica_fumatore.cognome}" if p.ultima_modifica_fumatore else '—',
+                'ultima_modifica_ex_fumatore': f"{p.ultima_modifica_ex_fumatore.nome} {p.ultima_modifica_ex_fumatore.cognome}" if p.ultima_modifica_ex_fumatore else '—',
+                'ultima_modifica_obesita': f"{p.ultima_modifica_obesita.nome} {p.ultima_modifica_obesita.cognome}" if p.ultima_modifica_obesita else '—',
+                'ultima_modifica_problemi_alcol': f"{p.ultima_modifica_problemi_alcol.nome} {p.ultima_modifica_problemi_alcol.cognome}" if p.ultima_modifica_problemi_alcol else '—',
+                'ultima_modifica_problemi_stupefacenti': f"{p.ultima_modifica_problemi_stupefacenti.nome} {p.ultima_modifica_problemi_stupefacenti.cognome}" if p.ultima_modifica_problemi_stupefacenti else '—',
+                'ultima_modifica_comorbidita': f"{p.ultima_modifica_comorbidita.nome} {p.ultima_modifica_comorbidita.cognome}" if p.ultima_modifica_comorbidita else '—',
             }
             for p in m.pazienti
         ]
@@ -301,22 +332,51 @@ class OrmModel:
             'problemi_alcol': p.problemi_alcol,
             'problemi_stupefacenti': p.problemi_stupefacenti,
             'comorbidita': p.comorbidita or '',
+            'ultima_modifica_fumatore': f"{p.ultima_modifica_fumatore.nome} {p.ultima_modifica_fumatore.cognome}" if p.ultima_modifica_fumatore else '—',
+            'ultima_modifica_ex_fumatore': f"{p.ultima_modifica_ex_fumatore.nome} {p.ultima_modifica_ex_fumatore.cognome}" if p.ultima_modifica_ex_fumatore else '—',
+            'ultima_modifica_obesita': f"{p.ultima_modifica_obesita.nome} {p.ultima_modifica_obesita.cognome}" if p.ultima_modifica_obesita else '—',
+            'ultima_modifica_problemi_alcol': f"{p.ultima_modifica_problemi_alcol.nome} {p.ultima_modifica_problemi_alcol.cognome}" if p.ultima_modifica_problemi_alcol else '—',
+            'ultima_modifica_problemi_stupefacenti': f"{p.ultima_modifica_problemi_stupefacenti.nome} {p.ultima_modifica_problemi_stupefacenti.cognome}" if p.ultima_modifica_problemi_stupefacenti else '—',
+            'ultima_modifica_comorbidita': f"{p.ultima_modifica_comorbidita.nome} {p.ultima_modifica_comorbidita.cognome}" if p.ultima_modifica_comorbidita else '—',
         }
     
     @db_session
     def modifica_paziente(self, codice_fiscale:str, nome:str, cognome:str, fumatore:bool, ex_fumatore:bool,
-                           obesita:bool, problemi_alcol:bool, problemi_stupefacenti:bool, comorbidita:str):
+                           obesita:bool, problemi_alcol:bool, problemi_stupefacenti:bool, comorbidita:str, medico_email:str=None):
         p=Paziente.get(codice_fiscale=codice_fiscale)
         if not p:
             raise ValueError('Paziente non trovato')
+        
+        # Ottieni l'utente che sta facendo la modifica
+        medico = Utente.get(email=medico_email) if medico_email else None
+        
         p.utente.nome = nome
         p.utente.cognome = cognome
-        p.fumatore = fumatore
-        p.ex_fumatore = ex_fumatore
-        p.obesita = obesita
-        p.problemi_alcol = problemi_alcol
-        p.problemi_stupefacenti = problemi_stupefacenti
-        p.comorbidita = comorbidita
+        
+        if p.fumatore != fumatore:
+            p.fumatore = fumatore
+            p.ultima_modifica_fumatore = medico
+        
+        if p.ex_fumatore != ex_fumatore:
+            p.ex_fumatore = ex_fumatore
+            p.ultima_modifica_ex_fumatore = medico
+        
+        if p.obesita != obesita:
+            p.obesita = obesita
+            p.ultima_modifica_obesita = medico
+        
+        if p.problemi_alcol != problemi_alcol:
+            p.problemi_alcol = problemi_alcol
+            p.ultima_modifica_problemi_alcol = medico
+        
+        if p.problemi_stupefacenti != problemi_stupefacenti:
+            p.problemi_stupefacenti = problemi_stupefacenti
+            p.ultima_modifica_problemi_stupefacenti = medico
+        
+        if p.comorbidita != comorbidita:
+            p.comorbidita = comorbidita
+            p.ultima_modifica_comorbidita = medico
+        
         commit() 
     
     # ---- operazioni Paziente ---------------------------------------------------

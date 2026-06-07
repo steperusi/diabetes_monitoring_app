@@ -226,27 +226,39 @@ def register_callbacks(app):
         State('edit-p-nome', 'value'),
         State('edit-p-cognome', 'value'),
         State('edit-p-comorbidita', 'value'),
-        State('edit-p-flags', 'value'),
+        State('edit-p-flag-fumatore', 'value'),
+        State('edit-p-flag-ex_fumatore', 'value'),
+        State('edit-p-flag-obesita', 'value'),
+        State('edit-p-flag-problemi_alcol', 'value'),
+        State('edit-p-flag-problemi_stupefacenti', 'value'),
+        State('medic-email', 'data'),
         prevent_initial_call=True,
     )
-    def save_edit_patient(n, cf, nome, cognome, comorbidita, flags):
+    def save_edit_patient(n, cf, nome, cognome, comorbidita, flags_fumatore, flags_ex_fumatore, flags_obesita, flags_problemi_alcol, flags_problemi_stupefacenti, medic_email):
         if not n or not cf:
             return '', {}
-        flags = flags or []
         missing = [f for f, v in [('Nome', nome), ('Cognome', cognome),] if not v]
         if missing:
             return (f'⚠️ Campi obbligatori mancanti: {", ".join(missing)}.',{'color': '#dc2626', 'fontSize': '13px'})
+        
+        fumatore              = bool('fumatore' in (flags_fumatore              or []))
+        ex_fumatore           = bool('ex_fumatore' in (flags_ex_fumatore           or []))
+        obesita               = bool('obesita' in (flags_obesita               or []))
+        problemi_alcol        = bool('problemi_alcol' in (flags_problemi_alcol        or []))
+        problemi_stupefacenti = bool('problemi_stupefacenti' in (flags_problemi_stupefacenti or []))
+        
         try:
             model.modifica_paziente(
                 codice_fiscale = cf,
                 nome=nome,
                 cognome=cognome,
-                fumatore='fumatore' in flags,
-                ex_fumatore='ex_fumatore' in flags,
-                obesita='obesita' in flags,
-                problemi_alcol='problemi_alcol' in flags,
-                problemi_stupefacenti='problemi_stupefacenti' in flags,
+                fumatore=fumatore,
+                ex_fumatore=ex_fumatore,
+                obesita=obesita,
+                problemi_alcol=problemi_alcol,
+                problemi_stupefacenti=problemi_stupefacenti,
                 comorbidita=comorbidita or '',
+                medico_email=medic_email if isinstance(medic_email, str) else medic_email.get('email') if isinstance(medic_email, dict) else None,
             )
             return ('✅ Modifiche salvate con successo.', {'color': '#16a34a', 'fontSize': '13px'})
         except Exception as e:
