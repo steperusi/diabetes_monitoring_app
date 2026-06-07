@@ -440,8 +440,7 @@ def daily_data():
                         
                 html.Div([
                     html.Button('Invia segnalazione', id='p-btn-send-segnalazione', n_clicks=0,
-                               style={'padding': '10px 30px', 'backgroundColor': '#28a745', 'color': 'white',
-                                     'border': 'none', 'borderRadius': '4px', 'cursor': 'pointer', 'fontSize': '16px'}),
+                               style=BTN_PRIMARY),
                     html.Span(id='p-segnalazione-message', style={'marginLeft': '15px', 'color': 'green'}),
                 ], style={'display': 'flex', 'alignItems': 'center'}),
             ], style={'border': '1px solid #ddd', 'padding': '15px', 'borderRadius': '4px', 'backgroundColor': '#f9f9f9', 'marginBottom': '20px'}),
