@@ -716,6 +716,31 @@ class OrmModel:
             quantita_assunta=float(quantita_assunta),
             unita_misura=farmaco.unita_misura,
         )
+        # alert al medico se il farmaco assunto non è stato prescritto
+        oggi = date.today()
+        terapie_attive = [
+            t for t in p.terapie
+            if t.data_inizio is not None
+            and t.data_inizio <= oggi
+            and (t.data_fine is None or t.data_fine >= oggi)
+        ]
+        farmaci_prescritti = {
+            a.farmaco_nome.nome
+            for t in terapie_attive
+            for a in t.assunzioni_giornaliere
+        }
+        
+        farmaco_effettivo = nome_farmaco if farmaci_prescritti else farmaco.nome
+        if terapie_attive and farmaco_effettivo not in farmaci_prescritti:
+            medico_utente = p.medico_riferimento.utente
+            nome_paz = f"{p.utente.nome} {p.utente.cognome}"
+            testo = (
+                f"⚠️ FARMACO NON PRESCRITTO — {nome_paz} ha assunto «{farmaco_effettivo}» "
+                f"che non è presente nella terapia attiva."
+            )
+            Alert(utente=medico_utente, informazioni=testo)
+
+        
         commit()
         return True
     
