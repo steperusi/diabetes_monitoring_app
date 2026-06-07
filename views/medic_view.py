@@ -255,7 +255,7 @@ def my_patients_tab(pazienti: list) -> html.Div:
             ]),
         ], style={'borderRadius': '12px', 'overflowX': 'auto', 'minWidth': '0',
                   'border': '1px solid #e5e7eb'}),
-    ], style=CARD)
+    ], key='patients-tab', style=CARD)
    
 def edit_patient_tab(paziente: dict) -> html.Div:
     """Form di modifica paziente, precompilato con i dati esistenti."""
@@ -496,7 +496,7 @@ def manage_therapy_tab(terapie: list) -> html.Div:
                                 'fontSize': '14px', 'textAlign': 'center'}),
             ]),
         ], style={'borderRadius': '12px', 'overflow': 'hidden', 'minWidth': '0', 'border': '1px solid #e5e7eb'}),
-    ], style=CARD)
+    ], key='therapies-tab', style=CARD)
 
 
 def add_therapy_tab(pazienti_options: list, farmaci_options: list) -> html.Div:
