@@ -118,7 +118,7 @@ class Alert(diabete_db.Entity):
     id = PrimaryKey(int, auto=True)
     utente = Required(Utente)
     informazioni = Required(LongStr)
-    timestamp = Required(datetime, default=datetime.utcnow)
+    timestamp = Required(datetime, default=datetime.now)
     letto = Required(bool, default=False)
 
 class Messaggio(diabete_db.Entity):
@@ -262,6 +262,49 @@ class OrmModel:
         
         commit()
         self.controlla_aderenza_terapia(paziente_email)
+        
+    @db_session
+    def modifica_terapia(self, terapia_id: int, data_inizio, data_fine, assunzioni: list):
+        t = Terapia.get(id=terapia_id)
+        if not t:
+            raise ValueError('Terapia non trovata')
+        
+        if isinstance(data_inizio, str):
+            data_inizio = date.fromisoformat(data_inizio)
+        if isinstance(data_fine, str) and data_fine:
+            data_fine = date.fromisoformat(data_fine)
+        else:
+            data_fine = None
+            
+        t.data_inizio = data_inizio
+        t.data_fine = data_fine
+        
+        #Sostituisco le assunzioni giornaliere
+        for a in list(t.assunzioni_giornaliere):
+            a.delete()
+            
+        for a in assunzioni:
+            farmaco = Farmaco.get(nome=a['farmaco_nome'])
+            if not farmaco:
+                raise ValueError(f"Farmaco '{a['farmaco_nome']}' non trovato")
+            Assunzioni_terapia(
+                terapia=t,
+                orario=a['orario'],
+                farmaco_nome=farmaco,
+                quantita=float(a['quantita']),
+                unita_misura=farmaco.unita_misura,
+            )
+            
+        #notifica al paziente di modifica terapia
+        medico = t.medico
+        data_fine_str = str(data_fine) if data_fine else 'data da definire'
+        testo = (
+            f"💊 Il Dr. {medico.utente.nome} {medico.utente.cognome} "
+            f"ha modificato la tua terapia (dal {data_inizio} al {data_fine_str})."
+        )
+        Alert(utente=t.paziente.utente, informazioni=testo)
+        commit()
+        self.controlla_aderenza_terapia(t.paziente.utente.email)
 
     @db_session                
     def get_pazienti_medico(self, medico_email: str) -> list[dict]:

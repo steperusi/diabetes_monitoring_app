@@ -3,7 +3,7 @@
 from dash import Output, Input, State, ctx, no_update, html, ALL, MATCH
 from models.model import model
 from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_assunzioni, render_storico_temp, messages_tab, render_chat, edit_patient_tab
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_assunzioni, render_storico_temp, messages_tab, render_chat, edit_patient_tab, edit_therapy_tab, render_storico_edit
 import plotly.express as px
 
 def register_callbacks(app):
@@ -151,7 +151,128 @@ def register_callbacks(app):
             return {'display': 'block'}, '▼'
         return {'display': 'none'}, '▶'
             
-
+            
+# -----apre form modifica terapia -----------------------------------------
+    @app.callback(
+        Output('m-tab-content', 'children', allow_duplicate=True),
+        Input({'type': 'btn-edit-therapy', 'index': ALL}, 'n_clicks'),
+        State('medic-email', 'data'),
+        prevent_initial_call=True
+    )
+    def open_edit_therapy(n_clicks_list, medic_email):
+        triggered = ctx.triggered_id
+        if not triggered or not any(n for n in n_clicks_list if n):
+            return no_update
+        terapia_id = triggered['index']
+        terapie = model.get_terapie_medico(medic_email)
+        terapia = next((t for t in terapie if t['id'] == terapia_id), None)
+        if not terapia:
+            return no_update
+        farmaci_options = model.get_tutti_farmaci()
+        return edit_therapy_tab(terapia, farmaci_options)
+    
+    # aggiunge assunzione nel form modifica
+    @app.callback(
+        Output('store-edit-assunzioni-temp', 'data', allow_duplicate=True),
+        Output('store-edit-reset-form', 'data'),
+        Output('msg-edit-add-assunzione', 'children'),
+        Input('btn-edit-add-assunzione', 'n_clicks'),
+        State('store-edit-assunzioni-temp', 'data'),
+        State('edit-t-fascia', 'value'),
+        State('edit-t-farmaco', 'value'),
+        State('edit-t-quantita', 'value'),
+        prevent_initial_call=True,
+    )
+    def edit_aggiungi_assunzione(n, store, fascia, farmaco, quantita):
+        if not fascia or not farmaco or quantita is None or quantita == '':
+            return no_update, no_update, \
+                html.Span('⚠️ Compila tutti i campi.', style={'color': '#dc2626'})
+        items = (store or {}).get('items', [])
+        nuova = {'orario': fascia, 'farmaco_nome': farmaco, 'quantita': float(quantita)}
+        return {'items': items + [nuova], 'ts':n}, n, ''
+    
+#---- reset campi input dopo aggiunta -------------------------------------
+    @app.callback(
+        Output('edit-t-fascia', 'value'),
+        Output('edit-t-farmaco', 'value'),
+        Output('edit-t-quantita', 'value'),
+        Input('store-edit-reset-form', 'data'),
+        prevent_initial_call=True,
+    )
+    def reset_edit_form(ts):
+        return None, None, None
+    
+# ---- elimina assunzione nel form di modifica ----------------------------
+    @app.callback(
+        Output('store-edit-assunzioni-temp', 'data', allow_duplicate=True),
+        Input({'type': 'btn-del-edit-assunzione', 'index': ALL}, 'n_clicks'),
+        State('store-edit-assunzioni-temp', 'data'),
+        prevent_initial_call=True,
+    )
+    def edit_elimina_assunzioni(n_del, store):
+        if not any(n_del):
+            return no_update
+        triggered = ctx.triggered_id
+        if not isinstance(triggered, dict) or triggered.get('type') != 'btn-del-edit-assunzione':
+            return no_update
+        idx = triggered['index']
+        items = (store or {}).get('items', [])
+        return {'items': [a for i, a in enumerate(items) if i != idx], 'ts':0}
+    
+# ---- aggiorna tabella assunzioni nel form di modifica -------------------
+    @app.callback(
+        Output('edit-storico-temp-table', 'children'),
+        Input('store-edit-assunzioni-temp', 'data'),
+    )
+    def aggiorna_edit_storico(store):
+        items = (store or {}).get('items', [])
+        if not items:
+            return html.Div('Nessuna assunzione.',style={'padding': '12px', 'color': '#9ca3af'})
+        return render_storico_edit(items)
+    
+# ---- salva modifiche terapia ------------------------------------------------
+    @app.callback(
+        Output('msg-edit-therapy', 'children'),
+        Output('msg-edit-therapy', 'style'),
+        Input('btn-save-edit-therapy', 'n_clicks'),
+        State('editing-therapy-id', 'data'),
+        State('edit-t-data-inizio', 'date'),
+        State('edit-t-data-fine', 'date'),
+        State('store-edit-assunzioni-temp', 'data'),
+        prevent_initial_call=True,
+    )
+    def save_edit_therapy(n, terapia_id, data_inizio, data_fine, store):
+        if not n or not terapia_id:
+            return '', {}
+        assunzioni = (store or {}).get('items', [])
+        if not data_inizio:
+            return '⚠️ La data di inizio è obbligatoria.', {'color': '#dc2626', 'fontSize': '13px'}
+        if not assunzioni:
+            return '⚠️ Aggiungi almeno un\'assunzione.', {'color': '#dc2626', 'fontSize': '13px'}
+        try:
+            model.modifica_terapia(
+                terapia_id=terapia_id,
+                data_inizio=data_inizio,
+                data_fine=data_fine or None,
+                assunzioni=assunzioni,
+            )
+            return '✅ Terapia modificata con successo.', {'color': '#16a34a', 'fontSize': '13px'}
+        except Exception as e:
+            return f'❌ Errore: {str(e)}', {'color': '#dc2626', 'fontSize': '13px'}
+        
+# ---- tasto indietro torna alle terapie -------------------------------------
+    @app.callback(
+        Output('m-tab-content', 'children', allow_duplicate=True),
+        Output('m-main-tabs', 'value', allow_duplicate=True),
+        Input('btn-back-therapies', 'n_clicks'),
+        State('medic-email', 'data'),
+        prevent_initial_call=True,
+    )
+    def back_to_therapies(n, email):
+        if not n:
+            return no_update, no_update
+        terapie = model.get_terapie_medico(email)
+        return manage_therapy_tab(terapie), 'view-therapies'
 
 # ---- messaggi -----------------------------------------------------------
     @app.callback(
