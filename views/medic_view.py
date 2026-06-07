@@ -467,7 +467,7 @@ def manage_therapy_tab(terapie: list) -> html.Div:
         return html.Div([header] + righe,
                         style={'borderTop': '1px solid #e5e7eb', 'background': '#fafbff'})
 
-    headers = ['', 'Paziente', 'Inizio', 'Fine']
+    headers = ['', 'Paziente', 'Inizio', 'Fine', '']  # ← aggiunto '' finale
     rows = []
     for i, t in enumerate(terapie):
         row_style = TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD
@@ -487,6 +487,16 @@ def manage_therapy_tab(terapie: list) -> html.Div:
                 t['paziente_nome'],
                 t['data_inizio'],
                 t['data_fine'] if t['data_fine'] else '—',
+                html.Button(  # ← nuovo
+                    '✏️',
+                    id={'type': 'btn-edit-therapy', 'index': t['id']},
+                    n_clicks=0,
+                    style={
+                        'background': 'none', 'border': '1px solid #4748AC',
+                        'borderRadius': '6px', 'cursor': 'pointer',
+                        'padding': '2px 8px', 'fontSize': '14px',
+                    },
+                ),
             ], row_style),
             html.Div(
                 id={'type': 'therapy-detail', 'index': t['id']},
@@ -515,6 +525,100 @@ def manage_therapy_tab(terapie: list) -> html.Div:
         ], style={'borderRadius': '12px', 'overflow': 'hidden', 'minWidth': '0', 'border': '1px solid #e5e7eb'}),
     ], key='therapies-tab', style=CARD)
 
+def render_storico_edit(assunzioni: list) -> list:
+    header = _table_row(['Fascia', 'Farmaco', 'Quantità', ''], TABLE_HEADER)
+    ordinate = sorted(assunzioni, key=lambda x: (_fascia_ordine(x['orario']), x['orario']))
+    rows = [
+        _table_row([
+            a['orario'].capitalize(),
+            a['farmaco_nome'],
+            str(a['quantita']),
+            html.Button('✕', id={'type': 'btn-del-edit-assunzione', 'index': i},
+                        n_clicks=0, style={
+                            'background': 'none', 'border': '1px solid #e53e3e',
+                            'color': '#e53e3e', 'borderRadius': '6px',
+                            'cursor': 'pointer', 'padding': '2px 8px', 'fontSize': '12px',
+                        }),
+        ], TABLE_ROW_EVEN if i % 2 == 0 else TABLE_ROW_ODD)
+        for i, a in enumerate(ordinate)
+    ]
+    return [header] + rows
+
+
+def edit_therapy_tab(terapia: dict, farmaci_options: list) -> html.Div:
+    #Form di modifica terapia, precomilato con dati esistenti
+    return html.Div([
+        html.Button('← Torna alle terapie', id='btn-back-therapies', n_clicks=0,
+                    style={'background': 'none', 'border': 'none', 'color': '#4748AC',
+                           'fontWeight': '600', 'cursor': 'pointer', 'fontSize': '14px',
+                           'marginBottom': '16px', 'padding': '0'}),
+
+        html.Div('Modifica Terapia', style=SECTION_TITLE),
+        html.Div(f"Paziente: {terapia.get('paziente_nome')}", style=SECTION_SUBTITLE),
+
+        html.Div(style={
+            'display': 'grid', 'gridTemplateColumns': '1fr 1fr',
+            'gap': '0 24px', 'marginTop': '20px', 'marginBottom': '20px',
+        }, children=[
+            html.Div([
+                html.Label('Data Inizio *', style=LABEL_STYLE),
+                dcc.DatePickerSingle(id='edit-t-data-inizio',
+                                     date=terapia.get('data_inizio'),
+                                     display_format='YYYY-MM-DD',
+                                     style={'marginBottom': '14px'}),
+            ]),
+            html.Div([
+                html.Label('Data Fine', style=LABEL_STYLE),
+                dcc.DatePickerSingle(id='edit-t-data-fine',
+                                     date=terapia.get('data_fine') if terapia.get('data_fine') != 'In corso' else None,
+                                     display_format='YYYY-MM-DD',
+                                     style={'marginBottom': '14px'}),
+            ]),
+        ]),
+
+        html.Hr(style={'borderColor': '#e2e8f0', 'margin': '4px 0 16px'}),
+        html.Div('Assunzioni giornaliere', style={
+            'fontWeight': '600', 'fontSize': '14px',
+            'color': '#4748AC', 'marginBottom': '12px',
+        }),
+
+        # Input nuova assunzione
+        html.Div(style={
+            'display': 'grid', 'gridTemplateColumns': '160px 1fr 100px auto',
+            'gap': '0 12px', 'alignItems': 'end', 'marginBottom': '12px',
+        }, children=[
+            _field('Fascia', 'edit-t-fascia', options=[
+                {'label': 'Colazione', 'value': 'colazione'},
+                {'label': 'Pranzo',    'value': 'pranzo'},
+                {'label': 'Cena',      'value': 'cena'},
+            ]),
+            _field('Farmaco', 'edit-t-farmaco', 'Seleziona farmaco…', options=farmaci_options),
+            _field('Quantità', 'edit-t-quantita', 'es. 1', type_='text'),
+            html.Div([
+                html.Button('+ Aggiungi', id='btn-edit-add-assunzione', n_clicks=0, style=BTN_SECONDARY),
+            ]),
+        ]),
+
+        html.Div(id='msg-edit-add-assunzione', style={'fontSize': '13px', 'marginBottom': '8px'}),
+
+        # Tabella assunzioni correnti (modificabile)
+        html.Div(id='edit-storico-temp-section', children=[
+            html.Div('Assunzioni', style={
+                'fontWeight': '600', 'fontSize': '13px',
+                'color': '#6b7280', 'marginBottom': '8px',
+            }),
+            html.Div(id='edit-storico-temp-table',
+                     style={'borderRadius': '12px', 'overflowX': 'auto',
+                            'border': '1px solid #e5e7eb', 'marginBottom': '16px'}),
+        ]),
+
+        html.Div(id='msg-edit-therapy', style={'marginTop': '8px', 'fontSize': '13px'}),
+        html.Button('Salva Modifiche', id='btn-save-edit-therapy', n_clicks=0, style=BTN_PRIMARY),
+
+        dcc.Store(id='editing-therapy-id', data=terapia.get('id')),
+        dcc.Store(id='store-edit-assunzioni-temp', data={'items': terapia.get('assunzioni', []), 'ts': 0}),
+        dcc.Store(id='store-edit-reset-form', data=0),
+    ], style=CARD)
 
 def add_therapy_tab(pazienti_options: list, farmaci_options: list) -> html.Div:
     return html.Div([
