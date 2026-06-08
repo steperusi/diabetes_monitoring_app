@@ -256,7 +256,7 @@ class OrmModel:
             )
         #----- Notifica al paziente -----------------------------------------------
         data_fine_str = str(data_fine) if data_fine else "data da definire"
-        testo = (f"💊 Il Dr. {medico.utente.nome} {medico.utente.cognome} ti ha assengato una nuova terapia dal {data_inizio} al {data_fine_str}." )
+        testo = (f"💊 Il Dr. {medico.utente.nome} {medico.utente.cognome} ti ha assegnato una nuova terapia dal {data_inizio} al {data_fine_str}." )
         Alert(utente=paziente.utente, informazioni=testo)
         
         
