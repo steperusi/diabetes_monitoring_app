@@ -22,7 +22,9 @@ def register_callbacks(app):
             terapie = model.get_terapie_medico(email)
             return manage_therapy_tab(terapie)
         if tab == 'add-therapy':
-            pazienti_options = model.get_tutti_pazienti()
+            pazienti_options = [{'label': f"{p['nome']} {p['cognome']}", 'value': p['email']}
+                                for p in model.get_pazienti_medico(email)
+                            ]
             farmaci_options = model.get_tutti_farmaci()
             return add_therapy_tab(pazienti_options, farmaci_options)
         if tab == 'messages':
