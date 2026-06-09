@@ -211,14 +211,71 @@ SEGNALAZIONI = [
      'Da quando ho iniziato Empagliflozin ho molta sete. Bevo circa 2.5L al giorno. È normale?'),
 ]
 
-# Alert aggiuntivi (oltre a quelli generati automaticamente)
+# Alert extra realistici: solo quelli che l'app genera realmente
+# Formato: (email_destinatario, testo)  — tutti seguono i template del model
 EXTRA_ALERTS = [
-    ('lucabianchi@medico.it',  '📋 Visita di controllo programmata con Giulia Rossi per il 15 del mese.'),
-    ('lucabianchi@medico.it',  '⚠️ Davide Esposito non ha registrato misurazioni per 3 giorni consecutivi.'),
-    ('annafontana@medico.it',  '📋 Esami del sangue di Roberto Neri disponibili per revisione.'),
-    ('annafontana@medico.it',  '💊 Sofia Marini ha completato la prima settimana di Empagliflozin senza eventi avversi.'),
-    ('marcoverdi@paziente.it', '🔔 Ricorda: prelievo a digiuno domani mattina alle 8:00.'),
-    ('giuliarossi@paziente.it','⚠️ Visita oculistica di controllo in scadenza questo mese.'),
+    # --- crea_terapia → paziente notificato (template: "💊 Il Dr. X ti ha assegnato una nuova terapia...")
+    # (già generati nel seed delle terapie, questi sono per una terapia modificata)
+
+    # --- modifica_terapia → paziente (template: "💊 Il Dr. X ha modificato la tua terapia...")
+    ('marcoverdi@paziente.it',
+     '💊 Il Dr. Luca Bianchi ha modificato la tua terapia '
+     f'(dal {(MONTH_AGO - timedelta(days=10)).isoformat()} al {(TODAY + timedelta(days=90)).isoformat()}).'),
+
+    # --- create_misurazione → medico: glicemia >= 300 CRITICO
+    # (template: "🚨 CRITICO — {nome}: glicemia {valore} mg/dL ({momento_label}). Intervento urgente raccomandato.")
+    ('lucabianchi@medico.it',
+     '🚨 CRITICO — Giulia Rossi: glicemia 315 mg/dL (Post pranzo). Intervento urgente raccomandato.'),
+    ('lucabianchi@medico.it',
+     '🚨 CRITICO — Davide Esposito: glicemia 302 mg/dL (Post cena). Intervento urgente raccomandato.'),
+
+    # --- create_misurazione → medico: glicemia >= 180 ATTENZIONE
+    # (template: "⚠️ ATTENZIONE — {nome}: glicemia elevata {valore} mg/dL ({momento_label}).")
+    ('lucabianchi@medico.it',
+     '⚠️ ATTENZIONE — Giulia Rossi: glicemia elevata 215 mg/dL (Post colazione).'),
+    ('annafontana@medico.it',
+     '⚠️ ATTENZIONE — Roberto Neri: glicemia elevata 188 mg/dL (Post pranzo).'),
+    ('annafontana@medico.it',
+     '⚠️ ATTENZIONE — Sofia Marini: glicemia elevata 193 mg/dL (Post cena).'),
+    ('lucabianchi@medico.it',
+     '⚠️ ATTENZIONE — Davide Esposito: glicemia elevata 247 mg/dL (Post colazione).'),
+
+    # --- create_misurazione → medico: glicemia <= 70 ATTENZIONE (ipoglicemia)
+    # (template: "⚠️ ATTENZIONE — {nome}: glicemia bassa {valore} mg/dL ({momento_label}).")
+    ('lucabianchi@medico.it',
+     '⚠️ ATTENZIONE — Giulia Rossi: glicemia bassa 58 mg/dL (Pre colazione).'),
+
+    # --- controlla_aderenza_terapia → medico: 3gg consecutivi senza terapia
+    # (template: "📋 ADERENZA — {nome} non ha seguito la terapia per almeno 3 giorni consecutivi...")
+    ('lucabianchi@medico.it',
+     f'📋 ADERENZA — Davide Esposito non ha seguito la terapia '
+     f'per almeno 3 giorni consecutivi (3 giorni). '
+     f'Si consiglia di contattare il paziente. '
+     f'[ADERENZA_3GG|davideesposito@paziente.it|{TODAY.isoformat()}]'),
+
+    # --- genera_alert_assunzioni → paziente: promemoria farmaco
+    # (template: "💊 Ricorda di assumere {farmaco} — {qty} {um} ({fascia}).")
+    ('giuliarossi@paziente.it',
+     '💊 Ricorda di assumere Insulina_Lenta — 14.0 UI (cena).'),
+    ('davideesposito@paziente.it',
+     '💊 Ricorda di assumere Sitagliptin — 100.0 mg (colazione).'),
+    ('robertoneri@paziente.it',
+     '💊 Ricorda di assumere Glipizide — 5.0 mg (colazione).'),
+
+    # --- genera_alert_misurazioni → paziente: promemoria misurazione
+    # (template: "⚠️ Ricorda di inserire la misurazione: {label}.")
+    ('marcoverdi@paziente.it',
+     '⚠️ Ricorda di inserire la misurazione: Pre colazione.'),
+    ('sofiamarini@paziente.it',
+     '⚠️ Ricorda di inserire la misurazione: Post pranzo.'),
+    ('davideesposito@paziente.it',
+     '⚠️ Ricorda di inserire la misurazione: Pre cena.'),
+
+    # --- create_assunzione → medico: farmaco non prescritto
+    # (template: "⚠️ FARMACO NON PRESCRITTO — {nome} ha assunto «{farmaco}» che non è presente nella terapia attiva.")
+    ('annafontana@medico.it',
+     '⚠️ FARMACO NON PRESCRITTO — Roberto Neri ha assunto «ALTRO» '
+     'che non è presente nella terapia attiva.'),
 ]
 
 
@@ -336,11 +393,13 @@ def seed():
                 quantita=a['quantita'],
                 unita_misura=a['unita_misura'],
             )
-        # Alert al paziente
+        # Alert al paziente — template identico a model.crea_terapia
+        data_fine_str = str(t_data['data_fine']) if t_data['data_fine'] else "data da definire"
+        testo = (f"💊 Il Dr. {med.utente.nome} {med.utente.cognome} ti ha assegnato una nuova terapia"
+                 f" dal {t_data['data_inizio']} al {data_fine_str}.")
         Alert(
             utente=paz.utente,
-            informazioni=(f"💊 Il Dr. {med.utente.nome} {med.utente.cognome} ti ha assegnato "
-                          f"una nuova terapia dal {t_data['data_inizio']} al {t_data['data_fine']}."),
+            informazioni=testo,
             timestamp=datetime(t_data['data_inizio'].year,
                                t_data['data_inizio'].month,
                                t_data['data_inizio'].day, 9, 0),
@@ -429,11 +488,12 @@ def seed():
             descrizione=descrizione,
             data_ora=NOW - timedelta(days=days_back, hours=random.randint(0, 12)),
         )
-        # Alert al medico
+        # Alert al medico — template identico a model.create_segnalazione
         med_utente = paz.medico_riferimento.utente
         Alert(
             utente=med_utente,
-            informazioni=(f"🚨 Segnalazione da {paz.utente.nome} {paz.utente.cognome}: «{titolo}»"),
+            informazioni=(f"🔔 Il paziente {paz.utente.nome} {paz.utente.cognome}"
+                          f" ha inviato una nuova segnalazione: «{titolo} -- {descrizione}»."),
             timestamp=NOW - timedelta(days=days_back),
         )
         print(f"      OK    '{titolo}' per {paz_email}")
@@ -473,10 +533,12 @@ def seed():
             print(f"      SKIP  chat {paz_email} ↔ {med_email} (già presente)")
             continue
         base_ts = NOW - timedelta(days=days_back_start)
+        gap_minutes = 0
         for i, (ruolo, testo) in enumerate(messaggi):
             mittente    = u_paz if ruolo == 'paziente' else u_med
             destinatario= u_med if ruolo == 'paziente' else u_paz
-            ts = base_ts + timedelta(minutes=i * random.randint(3, 20))
+            gap_minutes += random.randint(2, 15)   # sempre crescente
+            ts = base_ts + timedelta(minutes=gap_minutes)
             Messaggio(
                 mittente=mittente,
                 destinatario=destinatario,
