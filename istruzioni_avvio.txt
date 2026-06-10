@@ -1,0 +1,26 @@
+
+per avviare il sistema:
+
+- python -m venv venv
+- .\venv\Scripts\activate
+- pip install -r requirements.txt
+- python app.py
+
+al primo avvio il sistema include solo i seguenti utenti:
+
+Segretario:
+    -mail: segretario@telemedicina.it
+    -password: Admin123
+
+Medico:
+    -mail: lucabianchi@medico.it
+    -password: LucaB123
+
+paziente:
+    -mail: marcoverdi@paziente.it
+    -password: Marcov123
+
+per un caricamento completo con anche tutti i dati (misurazioni, assunzioni ecc.) si può
+popolare il database lanciando il seguente comando:
+
+python seed-data.py

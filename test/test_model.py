@@ -164,7 +164,7 @@ def test_crea_terapia(test_context):
 
 
 # ==================================================
-# ALERT GLICEMIA
+# GLICEMIA
 # ==================================================
 
 @db_session

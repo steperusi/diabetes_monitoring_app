@@ -3,6 +3,8 @@
 # pip install -r requirements.txt
 # python app.py
 
+#per visionare gli utenti del sistema visualizzare il file seed_data.py
+
 """
 App Dash con architettura Model-View-Controller.
 """
