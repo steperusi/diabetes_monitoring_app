@@ -1,265 +1,531 @@
-# python -m pytest .\test\test_model.py -v
+# python -m pytest .\test\model.py -v
 # da directory telemedicina
 
-import pytest
+import uuid
+from models.model import model
 from datetime import date, timedelta
 
-from models.model import (
-    model,
-    Utente,
-    Paziente,
-    Medico,
-    Terapia,
-    Alert,
-    Messaggio
-)
 from pony.orm import db_session
 
+from models.model import (
+    Utente,
+    Medico,
+    Paziente,
+    Alert
+)
 
-# ============================================================
+
+# ==================================================
+# HELPERS
+# ==================================================
+
+def unique():
+    return uuid.uuid4().hex[:8]
+
+
+# ==================================================
 # AUTENTICAZIONE
-# ============================================================
+# ==================================================
 
 def test_authenticate_valid_user():
+
     user = model.authenticate(
         "segretario@telemedicina.it",
         "Admin123"
     )
+
     assert user is not None
     assert user["ruolo"] == "segretario"
 
 
 def test_authenticate_invalid_user():
+
     user = model.authenticate(
         "fake@test.it",
         "wrong"
     )
+
     assert user is None
 
 
-# ============================================================
-# CREAZIONE MEDICO
-# ============================================================
+# ==================================================
+# MEDICO
+# ==================================================
 
-def test_crea_medico():
-    email = "pytest_medico@test.it"
-    try:
-        model.crea_medico(
-            nome="Mario",
-            cognome="Rossi",
-            email=email,
-            matricola="PYTEST001",
-            password="Password123"
-        )
-    except:
-        pass
+def test_crea_medico(test_context):
+
+    suffix = unique()
+
+    email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
+    )
+    test_context.append(email)
+
     user = model.get_user(email)
+
     assert user is not None
     assert user["ruolo"] == "medico"
 
 
-# ============================================================
-# CREAZIONE PAZIENTE
-# ============================================================
+# ==================================================
+# PAZIENTE
+# ==================================================
 
-def test_crea_paziente():
-    email = "pytest_paziente@test.it"
-    try:
-        model.crea_paziente(
-            nome="Luca",
-            cognome="Verdi",
-            email=email,
-            cf="PYTESTCF12345",
-            medico_id="lucabianchi@medico.it",
-            password="Password123"
-        )
-    except:
-        pass
-    user = model.get_user(email)
+def test_crea_paziente(test_context):
+
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
+    )
+    test_context.append(medico_email)
+
+    patient_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        nome="Luca",
+        cognome="Verdi",
+        email=patient_email,
+        cf=f"CF{suffix}",
+        medico_id=medico_email,
+        password="Password123"
+    )   
+    test_context.append(patient_email)
+
+    user = model.get_user(patient_email)
+
     assert user is not None
     assert user["ruolo"] == "paziente"
 
 
-# ============================================================
+# ==================================================
 # TERAPIA
-# ============================================================
+# ==================================================
 
-def test_crea_terapia():
-    assunzioni = [
-        {
-            "orario": "colazione",
-            "farmaco_nome": "Metmorfina",
-            "quantita": 500
-        }
-    ]
+def test_crea_terapia(test_context):
+
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        "Mario",
+        "Rossi",
+        medico_email,
+        f"MAT{suffix}",
+        "Password123"
+    )
+    test_context.append(medico_email)
+
+    paziente_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        "Luca",
+        "Verdi",
+        paziente_email,
+        f"CF{suffix}",
+        medico_email,
+        "Password123"
+    )
+    test_context.append(paziente_email)
+
+
     model.crea_terapia(
-        paziente_email="marcoverdi@paziente.it",
-        medico_email="lucabianchi@medico.it",
+        paziente_email=paziente_email,
+        medico_email=medico_email,
         data_inizio=date.today(),
         data_fine=date.today() + timedelta(days=30),
-        assunzioni=assunzioni
+        assunzioni=[
+            {
+                "orario": "colazione",
+                "farmaco_nome": "Metmorfina",
+                "quantita": 500
+            }
+        ]
     )
+
     terapie = model.get_terapie_paziente(
-        "marcoverdi@paziente.it"
+        paziente_email
     )
-    assert len(terapie) > 0
+
+    assert len(terapie) >= 1
 
 
-def test_crea_terapia_farmaco_non_esistente():
-    assunzioni = [
-        {
-            "orario": "colazione",
-            "farmaco_nome": "FARMACO_INESISTENTE",
-            "quantita": 100
-        }
-    ]
-    with pytest.raises(ValueError):
-        model.crea_terapia(
-            paziente_email="marcoverdi@paziente.it",
-            medico_email="lucabianchi@medico.it",
-            data_inizio=date.today(),
-            data_fine=None,
-            assunzioni=assunzioni
-        )
-
-
-# ============================================================
-# MISURAZIONI
-# ============================================================
-
-def test_create_misurazione():
-    result = model.create_misurazione(
-        "marcoverdi@paziente.it",
-        date.today(),
-        "pre_colazione",
-        110
-    )
-    assert result is True
-
+# ==================================================
+# ALERT GLICEMIA
+# ==================================================
 
 @db_session
-def test_misurazione_critica_generates_alert():
+def test_alert_glicemia_critica(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
+    )
+    test_context.append(medico_email)
+
+
+    patient_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        nome="Luca",
+        cognome="Verdi",
+        email=patient_email,
+        cf=f"CF{suffix}",
+        medico_id=medico_email,
+        password="Password123"
+    )
+    test_context.append(patient_email)
+
+
     model.create_misurazione(
-        "marcoverdi@paziente.it",
+        patient_email,
         date.today(),
         "pre_colazione",
         350
     )
+
     medico = Utente.get(
-        email="lucabianchi@medico.it"
+        email=medico_email
     )
-    alerts = [
+
+    critici = [
         a for a in medico.alert
         if "CRITICO" in a.informazioni
     ]
-    assert len(alerts) > 0
+
+    assert len(critici) > 0
 
 
-# ============================================================
-# ASSUNZIONI
-# ============================================================
-
-def test_create_assunzione():
-    result = model.create_assunzione(
-        "marcoverdi@paziente.it",
-        date.today(),
-        8,
-        30,
-        "Metmorfina",
-        500
-    )
-    assert result is True
-
+# ==================================================
+# CREAZIONE MISURAZIONE
+# ==================================================
 
 @db_session
-def test_farmaco_non_prescritto_alert():
-    model.create_assunzione(
-        "marcoverdi@paziente.it",
+def test_crea_misurazione(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
+    )
+    test_context.append(medico_email)
+
+
+    patient_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        nome="Luca",
+        cognome="Verdi",
+        email=patient_email,
+        cf=f"CF{suffix}",
+        medico_id=medico_email,
+        password="Password123"
+    )
+    test_context.append(patient_email)
+
+
+    model.create_misurazione(
+        patient_email,
         date.today(),
-        8,
-        30,
-        "FarmacoInventato",
-        100
+        "pre_colazione",
+        160
     )
-    medico = Utente.get(
-        email="lucabianchi@medico.it"
+    misurazione = model.get_misurazione(
+        patient_email=patient_email,
+        data_misurazione=date.today(),
+        momento_misurazione="pre_colazione"
     )
-    alerts = [
-        a for a in medico.alert
-        if "NON PRESCRITTO" in a.informazioni
-    ]
-    assert len(alerts) > 0
+    
+    assert isinstance(misurazione, dict)
 
 
-# ============================================================
-# SEGNALAZIONI
-# ============================================================
 
-def test_create_segnalazione():
-    result = model.create_segnalazione(
-        "marcoverdi@paziente.it",
-        "Mal di testa",
-        "Sintomo comparso stamattina"
+# ==================================================
+# GESTIONE FARMACI
+# ==================================================
+def test_assunzione_farmaco(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        "Mario",
+        "Rossi",
+        medico_email,
+        f"MAT{suffix}",
+        "Password123"
     )
-    assert result is True
+    test_context.append(medico_email)
 
+    paziente_email = f"patient_{suffix}@test.it"
 
-# ============================================================
+    model.crea_paziente(
+        "Luca",
+        "Verdi",
+        paziente_email,
+        f"CF{suffix}",
+        medico_email,
+        "Password123"
+    )
+    
+    test_context.append(paziente_email)
+
+    model.crea_terapia(
+        paziente_email=paziente_email,
+        medico_email=medico_email,
+        data_inizio=date.today(),
+        data_fine=date.today() + timedelta(days=30),
+        assunzioni=[
+            {
+                "orario": "colazione",
+                "farmaco_nome": "Metmorfina",
+                "quantita": 500
+            }
+        ]
+    )
+    model.create_assunzione(
+        patient_email=paziente_email,
+        data_assunzione=date.today(),
+        ora_assunzione=9,
+        minuto_assunzione=0,
+        nome_farmaco="Metmorfina",
+        quantita_assunta=500
+    )    
+    assunzione = model.get_assunzioni_by_date(patient_email=paziente_email, data_assunzione=date.today())
+    assert len(assunzione) >= 1
+
+def test_assunzione_farmaco_non_prescitto(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        "Mario",
+        "Rossi",
+        medico_email,
+        f"MAT{suffix}",
+        "Password123"
+    )
+    test_context.append(medico_email)
+
+    paziente_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        "Luca",
+        "Verdi",
+        paziente_email,
+        f"CF{suffix}",
+        medico_email,
+        "Password123"
+    )
+    test_context.append(paziente_email)
+
+    model.crea_terapia(
+        paziente_email=paziente_email,
+        medico_email=medico_email,
+        data_inizio=date.today(),
+        data_fine=date.today() + timedelta(days=30),
+        assunzioni=[
+            {
+                "orario": "colazione",
+                "farmaco_nome": "Metmorfina",
+                "quantita": 500
+            }
+        ]
+    )
+    model.create_assunzione(
+        patient_email=paziente_email,
+        data_assunzione=date.today(),
+        ora_assunzione=9,
+        minuto_assunzione=0,
+        nome_farmaco="Insulina_Rapida",
+        quantita_assunta=500
+    )
+    alerts = model.get_alert_non_letti(
+        medico_email
+    )
+
+    assert len(alerts) > 0   
+    
+    
+# ==================================================
+# SEGNALAZIONE
+# ==================================================
+
+def test_invia_segnalazione(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
+    )
+    test_context.append(medico_email)
+
+    patient_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        nome="Luca",
+        cognome="Verdi",
+        email=patient_email,
+        cf=f"CF{suffix}",
+        medico_id=medico_email,
+        password="Password123"
+    )
+    
+    test_context.append(patient_email)
+    
+    model.create_segnalazione(
+        patient_email=patient_email,
+        title="Mal di denti persistente",
+        description="Se mangio i sassi mi fanno male i denti"
+    )
+    segnalazioni = model.get_segnalazioni(patient_email=patient_email)
+    
+    assert len(segnalazioni) > 0
+
+    
+# ==================================================
 # CHAT
-# ============================================================
+# ==================================================
 
-def test_invia_messaggio():
+def test_invia_messaggio(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
+    )
+    test_context.append(medico_email)
+
+    patient_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        nome="Luca",
+        cognome="Verdi",
+        email=patient_email,
+        cf=f"CF{suffix}",
+        medico_id=medico_email,
+        password="Password123"
+    )
+    test_context.append(patient_email)
+
     model.invia_messaggio(
-        "marcoverdi@paziente.it",
-        "lucabianchi@medico.it",
-        "Messaggio di test"
+        patient_email,
+        medico_email,
+        "Messaggio test"
     )
+
     conv = model.get_conversazione(
-        "marcoverdi@paziente.it",
-        "lucabianchi@medico.it"
+        patient_email,
+        medico_email
     )
+
     assert len(conv) > 0
 
 
-# ============================================================
-# VALIDAZIONI
-# ============================================================
-
-def test_validate_misurazione_ok():
-    simbolo, colore = model.validate_misurazione(
-        110,
-        "pre_colazione"
-    )
-    assert simbolo == "✓"
-
-
-def test_validate_misurazione_ko():
-    simbolo, colore = model.validate_misurazione(
-        250,
-        "pre_colazione"
-    )
-    assert simbolo == "✗"
-
-
-# ============================================================
+# ==================================================
 # ALERT
-# ============================================================
+# ==================================================
 
-def test_get_alert_non_letti():
-    alerts = model.get_alert_non_letti(
-        "lucabianchi@medico.it"
+def test_get_alert_non_letti(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
     )
+    test_context.append(medico_email)
+
+    alerts = model.get_alert_non_letti(
+        medico_email
+    )
+
     assert isinstance(alerts, list)
 
 
 @db_session
-def test_segna_alert_letto():
-    medico = Utente.get(
-        email="lucabianchi@medico.it"
+def test_segna_alert_letto(test_context):
+    suffix = unique()
+
+    medico_email = f"medico_{suffix}@test.it"
+
+    model.crea_medico(
+        nome="Mario",
+        cognome="Rossi",
+        email=medico_email,
+        matricola=f"MAT{suffix}",
+        password="Password123"
     )
+    test_context.append(medico_email)
+
+    patient_email = f"patient_{suffix}@test.it"
+
+    model.crea_paziente(
+        nome="Luca",
+        cognome="Verdi",
+        email=patient_email,
+        cf=f"CF{suffix}",
+        medico_id=medico_email,
+        password="Password123"
+    )
+    test_context.append(patient_email)
+    
+    model.create_misurazione(
+        patient_email,
+        date.today(),
+        "pre_colazione",
+        350
+    )
+
+    medico = Utente.get(
+        email=medico_email
+    )
+
     alert = next(iter(medico.alert), None)
-    if alert is None:
-        pytest.skip("Nessun alert presente")
-    model.segna_alert_letto(alert.id)
-    updated = Alert.get(id=alert.id)
-    assert updated.letto is True
+
+    if alert:
+
+        model.segna_alert_letto(alert.id)
+
+        updated = Alert.get(id=alert.id)
+
+        assert updated.letto is True

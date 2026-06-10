@@ -146,11 +146,17 @@ class Messaggio(diabete_db.Entity):
 #---Model class---
 
 class OrmModel:
-    
-    def __init__(self):
-        diabete_db.bind(provider='sqlite', filename=os.path.join(BASE_DIR, 'diabete.sqlite'),  create_db=True)
+
+    def __init__(self, db_filename='diabete.sqlite'):
+
+        diabete_db.bind(
+            provider='sqlite',
+            filename=os.path.join(BASE_DIR, db_filename),
+            create_db=True
+        )
+
         diabete_db.generate_mapping(create_tables=True)
-        
+
         self._seed_users()
         self.seed_farmaci()
 
