@@ -18,9 +18,13 @@ Medico:
 
 paziente:
     -mail: marcoverdi@paziente.it
-    -password: Marcov123
+    -password: MarcoV123
 
 per un caricamento completo con anche tutti i dati (misurazioni, assunzioni ecc.) si può
 popolare il database lanciando il seguente comando:
 
-python seed-data.py
+python seed_data.py
+
+Per lanciare i test:
+
+

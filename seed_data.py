@@ -14,6 +14,7 @@ import sys
 import random
 from datetime import date, datetime, timedelta
 from pony.orm import db_session, commit
+from models.model import model
 
 # ── aggiunge la root al path in modo da trovare i moduli del progetto ────────
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -42,11 +43,6 @@ random.seed(67)
 SEGRETARI = [
     dict(email='segretario@telemedicina.it',  nome='Carlo',    cognome='Mazzini',    password='Admin123'),
     dict(email='segretaria2@telemedicina.it', nome='Federica', cognome='Lombardi',   password='Fede456'),
-]
-
-MEDICI = [
-    dict(email='lucabianchi@medico.it',   nome='Luca',    cognome='Bianchi',   password='LucaB123',   matricola='MED001'),
-    dict(email='annafontana@medico.it',   nome='Anna',    cognome='Fontana',   password='AnnaF456',   matricola='MED002'),
 ]
 
 PAZIENTI = [
@@ -320,15 +316,14 @@ def seed():
 
     # ── 2. Medici ────────────────────────────────────────────────
     print("\n[2/8] Medici...")
+    MEDICI = [
+        #dict(email='lucabianchi@medico.it',   nome='Luca',    cognome='Bianchi',   password='LucaB123',   matricola='MED001'),
+        dict(email='annafontana@medico.it',   nome='Anna',    cognome='Fontana',   password='AnnaF456',   matricola='MED002'),
+    ]
+    
     for m in MEDICI:
-        if Utente.get(email=m['email']):
-            print(f"      SKIP  {m['email']} (esiste già)")
-            continue
-        u = Utente(email=m['email'], nome=m['nome'], cognome=m['cognome'],
-                   password=m['password'], ruolo='medico')
-        Medico(utente=u, matricola=m['matricola'])
-        print(f"      OK    {m['email']}")
-    commit()
+        model.crea_medico(email=m['email'], nome=m['nome'], cognome=m['cognome'], matricola=m['matricola'], password=m['password'])
+
 
     # ── 3. Pazienti ──────────────────────────────────────────────
     print("\n[3/8] Pazienti...")
