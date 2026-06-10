@@ -1,4 +1,4 @@
-# python -m pytest .\test\model.py -V --tb=short
+# python -m pytest .\test\test_model.py -V --tb=short
 # da directory telemedicina
 
 import uuid

@@ -27,4 +27,6 @@ python seed_data.py
 
 Per lanciare i test:
 
+python -m pytest .\test\test_model.py -V --tb=short
+
 

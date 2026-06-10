@@ -40,256 +40,13 @@ random.seed(67)
 # Dati statici
 # ---------------------------------------------------------------------------
 
-SEGRETARI = [
-    dict(email='segretario@telemedicina.it',  nome='Carlo',    cognome='Mazzini',    password='Admin123'),
-    dict(email='segretaria2@telemedicina.it', nome='Federica', cognome='Lombardi',   password='Fede456'),
-]
-
-PAZIENTI = [
-    dict(
-        email='marcoverdi@paziente.it',   nome='Marco',    cognome='Verdi',
-        password='MarcoV123',  cf='VRDMRC80A01H501A',
-        medico_email='lucabianchi@medico.it',
-        fumatore=False, ex_fumatore=True,  obesita=False, problemi_alcol=False, problemi_stupefacenti=False,
-        comorbidita='Ipertensione lieve, dislipidemia',
-    ),
-    dict(
-        email='giuliarossi@paziente.it',  nome='Giulia',   cognome='Rossi',
-        password='GiulR789',   cf='RSSGLL85M41F205Z',
-        medico_email='lucabianchi@medico.it',
-        fumatore=True,  ex_fumatore=False, obesita=True,  problemi_alcol=False, problemi_stupefacenti=False,
-        comorbidita='Neuropatia periferica',
-    ),
-    dict(
-        email='robertoneri@paziente.it',  nome='Roberto',  cognome='Neri',
-        password='RobeN321',   cf='NRERBT70C15L219X',
-        medico_email='annafontana@medico.it',
-        fumatore=False, ex_fumatore=False, obesita=False, problemi_alcol=True,  problemi_stupefacenti=False,
-        comorbidita='Retinopatia diabetica iniziale',
-    ),
-    dict(
-        email='sofiamarini@paziente.it',  nome='Sofia',    cognome='Marini',
-        password='SofM654',    cf='MRNSFO92P58G224K',
-        medico_email='annafontana@medico.it',
-        fumatore=False, ex_fumatore=False, obesita=True,  problemi_alcol=False, problemi_stupefacenti=False,
-        comorbidita='',
-    ),
-    dict(
-        email='davideesposito@paziente.it', nome='Davide', cognome='Esposito',
-        password='DavE987',    cf='SPSDVD88S10F839P',
-        medico_email='lucabianchi@medico.it',
-        fumatore=True,  ex_fumatore=False, obesita=False, problemi_alcol=False, problemi_stupefacenti=True,
-        comorbidita='Nefropatia stadio 2',
-    ),
-]
-
-# Terapie per paziente: lista di assunzioni giornaliere
-TERAPIE = {
-    'marcoverdi@paziente.it': dict(
-        medico='lucabianchi@medico.it',
-        data_inizio=MONTH_AGO,
-        data_fine=TODAY + timedelta(days=60),
-        indicazioni='Assumere metformina durante i pasti principali. Monitorare glicemia 2 volte/die.',
-        assunzioni=[
-            dict(orario='08:00', farmaco_nome='Metmorfina',     quantita=500.0, unita_misura='mg'),
-            dict(orario='20:00', farmaco_nome='Metmorfina',     quantita=500.0, unita_misura='mg'),
-        ],
-    ),
-    'giuliarossi@paziente.it': dict(
-        medico='lucabianchi@medico.it',
-        data_inizio=MONTH_AGO - timedelta(days=15),
-        data_fine=TODAY + timedelta(days=45),
-        indicazioni='Schema basal-bolus. Insulina lenta la sera, rapida ai pasti solo se glicemia > 150 mg/dL.',
-        assunzioni=[
-            dict(orario='07:30', farmaco_nome='Insulina_Rapida', quantita=6.0,   unita_misura='UI'),
-            dict(orario='13:00', farmaco_nome='Insulina_Rapida', quantita=8.0,   unita_misura='UI'),
-            dict(orario='19:30', farmaco_nome='Insulina_Rapida', quantita=6.0,   unita_misura='UI'),
-            dict(orario='22:00', farmaco_nome='Insulina_Lenta',  quantita=14.0,  unita_misura='UI'),
-        ],
-    ),
-    'robertoneri@paziente.it': dict(
-        medico='annafontana@medico.it',
-        data_inizio=MONTH_AGO - timedelta(days=5),
-        data_fine=TODAY + timedelta(days=90),
-        indicazioni='Glipizide a stomaco vuoto. Controllare glicemia a digiuno ogni mattina.',
-        assunzioni=[
-            dict(orario='07:00', farmaco_nome='Glipizide',       quantita=5.0,   unita_misura='mg'),
-            dict(orario='19:00', farmaco_nome='Glipizide',       quantita=5.0,   unita_misura='mg'),
-        ],
-    ),
-    'sofiamarini@paziente.it': dict(
-        medico='annafontana@medico.it',
-        data_inizio=MONTH_AGO,
-        data_fine=TODAY + timedelta(days=30),
-        indicazioni='Empagliflozin una volta al giorno. Aumentare apporto idrico.',
-        assunzioni=[
-            dict(orario='08:00', farmaco_nome='Empagliflozin',   quantita=10.0,  unita_misura='mg'),
-        ],
-    ),
-    'davideesposito@paziente.it': dict(
-        medico='lucabianchi@medico.it',
-        data_inizio=MONTH_AGO - timedelta(days=10),
-        data_fine=TODAY + timedelta(days=20),
-        indicazioni='Sitagliptin mattino. Evitare alcol e stupefacenti. Follow-up renale mensile.',
-        assunzioni=[
-            dict(orario='08:00', farmaco_nome='Sitagliptin',     quantita=100.0, unita_misura='mg'),
-        ],
-    ),
-}
-
-# Momenti di misurazione
-MOMENTI = ['pre_colazione', 'post_colazione', 'pre_pranzo', 'post_pranzo', 'pre_cena', 'post_cena']
-
-# Range glicemici realistici per profilo (min, max) per ogni momento
-GLUCOSE_PROFILES = {
-    'marcoverdi@paziente.it':    [85, 110, 130, 165, 95, 145],   # ben controllato
-    'giuliarossi@paziente.it':   [140, 200, 155, 230, 130, 195], # difficile controllo
-    'robertoneri@paziente.it':   [95, 135, 115, 170, 100, 160],  # medio
-    'sofiamarini@paziente.it':   [110, 155, 125, 185, 115, 175], # leggermente alto
-    'davideesposito@paziente.it':[165, 240, 170, 260, 150, 220], # scarsamente controllato
-}
 
 # Chat simulate tra pazienti e medici
-CHATS = [
-    # Marco ↔ Luca
-    ('marcoverdi@paziente.it',    'lucabianchi@medico.it',   4, [
-        ('paziente', 'Buongiorno Dottore, ho notato che la glicemia post-pranzo è spesso sopra 160. Devo preoccuparmi?'),
-        ('medico',   'Buongiorno Marco. Se è un dato occasionale non c\'è allarme immediato, ma vediamo la serie storica. Sta seguendo la dieta?'),
-        ('paziente', 'Sì, anche se il weekend è più difficile. Ieri sera ho mangiato fuori.'),
-        ('medico',   'Capito. Provi a registrare anche il pasto: è utile correlarlo alla glicemia. Ci sentiamo a fine settimana.'),
-    ]),
-    # Giulia ↔ Luca
-    ('giuliarossi@paziente.it',   'lucabianchi@medico.it',   7, [
-        ('paziente', 'Dottore, ieri sera ho dimenticato l\'insulina lenta. Come mi devo regolare stamattina?'),
-        ('medico',   'Non si preoccupi. Misuri la glicemia adesso: se è sotto 200 faccia la dose del mattino normalmente e salti la lenta di ieri.'),
-        ('paziente', 'Ho 210 mg/dL. Procedo con la rapida?'),
-        ('medico',   'Sì, proceda con 6 UI come da schema. Aggiunga 2 UI di correzione per la glicemia elevata. Monitori a pranzo.'),
-        ('paziente', 'Ok, fatto. Grazie mille per la risposta rapida.'),
-        ('medico',   'Prego. Ricordi: per dimenticanze notturne mi contatti subito, non aspetti la mattina.'),
-        ('paziente', 'Capito, me ne scuso. Prenderò un promemoria sul telefono.'),
-    ]),
-    # Roberto ↔ Anna
-    ('robertoneri@paziente.it',   'annafontana@medico.it',   5, [
-        ('paziente', 'Dottoressa Fontana, negli ultimi giorni ho la vista un po\' offuscata al mattino.'),
-        ('medico',   'Ciao Roberto. L\'offuscamento visivo può essere correlato a picchi glicemici notturni. Che valori registra a digiuno?'),
-        ('paziente', 'Tra 140 e 165 mg/dL.'),
-        ('medico',   'Sono valori un po\' alti per il digiuno. Valuterei di aggiungere Metformina serale. Venga in studio giovedì.'),
-        ('paziente', 'Ci sarò. Ha orari liberi nel pomeriggio?'),
-    ]),
-    # Sofia ↔ Anna
-    ('sofiamarini@paziente.it',   'annafontana@medico.it',   3, [
-        ('paziente', 'Buongiorno! Ho iniziato Empagliflozin da una settimana. Ho un po\' più sete, è normale?'),
-        ('medico',   'Sì, è un effetto atteso nei primi giorni. Aumenti l\'acqua a 2L/die. Dovrebbe normalizzarsi entro due settimane.'),
-        ('paziente', 'Ok perfetto, grazie!'),
-    ]),
-    # Davide ↔ Luca
-    ('davideesposito@paziente.it','lucabianchi@medico.it',   6, [
-        ('paziente', 'Dottore, ho valori altissimi questa settimana. Ho ripreso a fumare.'),
-        ('medico',   'Davide, l\'abbiamo discusso: il fumo peggiora significativamente la glicemia e la funzione renale. È urgente che smetta.'),
-        ('paziente', 'Lo so, ma sono in un momento difficile.'),
-        ('medico',   'Capisco. Parliamone. Posso indirizzarla al Centro Antifumo dell\'ASL, hanno ottimi risultati. Vuole che fissi un appuntamento?'),
-        ('paziente', 'Forse sì, grazie. Anche i valori renali mi preoccupano.'),
-        ('medico',   'Faremo un controllo creatinina e GFR entro fine mese. Intanto riduca il fumo il più possibile.'),
-    ]),
-]
-
-# Segnalazioni spontanee dei pazienti
-SEGNALAZIONI = [
-    ('giuliarossi@paziente.it',   'Ipoglicemia notturna',
-     'Stanotte ho avuto sudorazione e tremori. Glicemia alle 3:00 era 54 mg/dL. Ho assunto zucchero. Ora sto bene.'),
-    ('davideesposito@paziente.it','Glicemia molto alta',
-     'Oggi pomeriggio ho misurato 310 mg/dL dopo pranzo. Non ho modificato la dieta ma ieri non ho dormito. Cosa faccio?'),
-    ('robertoneri@paziente.it',   'Disturbi visivi ricorrenti',
-     'Negli ultimi 5 giorni ho episodi di visione sfocata, soprattutto la mattina. Potrebbe essere legato alla glicemia?'),
-    ('marcoverdi@paziente.it',    'Mal di testa post-prandiale',
-     'Dopo i pasti abbondanti accuso cefalea. Ho correlato con le misurazioni: sembra comparire quando supero 170 mg/dL.'),
-    ('sofiamarini@paziente.it',   'Sete intensa prima settimana',
-     'Da quando ho iniziato Empagliflozin ho molta sete. Bevo circa 2.5L al giorno. È normale?'),
-]
-
-# Alert extra realistici: solo quelli che l'app genera realmente
-# Formato: (email_destinatario, testo)  — tutti seguono i template del model
-EXTRA_ALERTS = [
-    # --- crea_terapia → paziente notificato (template: "💊 Il Dr. X ti ha assegnato una nuova terapia...")
-    # (già generati nel seed delle terapie, questi sono per una terapia modificata)
-
-    # --- modifica_terapia → paziente (template: "💊 Il Dr. X ha modificato la tua terapia...")
-    ('marcoverdi@paziente.it',
-     '💊 Il Dr. Luca Bianchi ha modificato la tua terapia '
-     f'(dal {(MONTH_AGO - timedelta(days=10)).isoformat()} al {(TODAY + timedelta(days=90)).isoformat()}).'),
-
-    # --- create_misurazione → medico: glicemia >= 300 CRITICO
-    # (template: "🚨 CRITICO — {nome}: glicemia {valore} mg/dL ({momento_label}). Intervento urgente raccomandato.")
-    ('lucabianchi@medico.it',
-     '🚨 CRITICO — Giulia Rossi: glicemia 315 mg/dL (Post pranzo). Intervento urgente raccomandato.'),
-    ('lucabianchi@medico.it',
-     '🚨 CRITICO — Davide Esposito: glicemia 302 mg/dL (Post cena). Intervento urgente raccomandato.'),
-
-    # --- create_misurazione → medico: glicemia >= 180 ATTENZIONE
-    # (template: "⚠️ ATTENZIONE — {nome}: glicemia elevata {valore} mg/dL ({momento_label}).")
-    ('lucabianchi@medico.it',
-     '⚠️ ATTENZIONE — Giulia Rossi: glicemia elevata 215 mg/dL (Post colazione).'),
-    ('annafontana@medico.it',
-     '⚠️ ATTENZIONE — Roberto Neri: glicemia elevata 188 mg/dL (Post pranzo).'),
-    ('annafontana@medico.it',
-     '⚠️ ATTENZIONE — Sofia Marini: glicemia elevata 193 mg/dL (Post cena).'),
-    ('lucabianchi@medico.it',
-     '⚠️ ATTENZIONE — Davide Esposito: glicemia elevata 247 mg/dL (Post colazione).'),
-
-    # --- create_misurazione → medico: glicemia <= 70 ATTENZIONE (ipoglicemia)
-    # (template: "⚠️ ATTENZIONE — {nome}: glicemia bassa {valore} mg/dL ({momento_label}).")
-    ('lucabianchi@medico.it',
-     '⚠️ ATTENZIONE — Giulia Rossi: glicemia bassa 58 mg/dL (Pre colazione).'),
-
-    # --- controlla_aderenza_terapia → medico: 3gg consecutivi senza terapia
-    # (template: "📋 ADERENZA — {nome} non ha seguito la terapia per almeno 3 giorni consecutivi...")
-    ('lucabianchi@medico.it',
-     f'📋 ADERENZA — Davide Esposito non ha seguito la terapia '
-     f'per almeno 3 giorni consecutivi (3 giorni). '
-     f'Si consiglia di contattare il paziente. '
-     f'[ADERENZA_3GG|davideesposito@paziente.it|{TODAY.isoformat()}]'),
-
-    # --- genera_alert_assunzioni → paziente: promemoria farmaco
-    # (template: "💊 Ricorda di assumere {farmaco} — {qty} {um} ({fascia}).")
-    ('giuliarossi@paziente.it',
-     '💊 Ricorda di assumere Insulina_Lenta — 14.0 UI (cena).'),
-    ('davideesposito@paziente.it',
-     '💊 Ricorda di assumere Sitagliptin — 100.0 mg (colazione).'),
-    ('robertoneri@paziente.it',
-     '💊 Ricorda di assumere Glipizide — 5.0 mg (colazione).'),
-
-    # --- genera_alert_misurazioni → paziente: promemoria misurazione
-    # (template: "⚠️ Ricorda di inserire la misurazione: {label}.")
-    ('marcoverdi@paziente.it',
-     '⚠️ Ricorda di inserire la misurazione: Pre colazione.'),
-    ('sofiamarini@paziente.it',
-     '⚠️ Ricorda di inserire la misurazione: Post pranzo.'),
-    ('davideesposito@paziente.it',
-     '⚠️ Ricorda di inserire la misurazione: Pre cena.'),
-
-    # --- create_assunzione → medico: farmaco non prescritto
-    # (template: "⚠️ FARMACO NON PRESCRITTO — {nome} ha assunto «{farmaco}» che non è presente nella terapia attiva.")
-    ('annafontana@medico.it',
-     '⚠️ FARMACO NON PRESCRITTO — Roberto Neri ha assunto «ALTRO» '
-     'che non è presente nella terapia attiva.'),
-]
 
 
 # ---------------------------------------------------------------------------
 # Funzioni helper
 # ---------------------------------------------------------------------------
-
-def days_in_range(start: date, end: date):
-    """Genera tutte le date da start a end inclusi."""
-    d = start
-    while d <= end:
-        yield d
-        d += timedelta(days=1)
-
-
-def jitter(val: float, pct: float = 0.12) -> float:
-    """Aggiunge rumore casuale ±pct% a un valore."""
-    return round(val * (1 + random.uniform(-pct, pct)), 1)
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +61,12 @@ def seed():
 
     # ── 1. Segretari ─────────────────────────────────────────────
     print("\n[1/8] Segretari...")
+
+    SEGRETARI = [
+        dict(email='segretario@telemedicina.it',  nome='Carlo',    cognome='Mazzini',    password='Admin123'),
+        dict(email='segretaria2@telemedicina.it', nome='Federica', cognome='Lombardi',   password='Fede456'),
+    ]
+
     for s in SEGRETARI:
         if Utente.get(email=s['email']):
             print(f"      SKIP  {s['email']} (esiste già)")
@@ -317,93 +80,176 @@ def seed():
     # ── 2. Medici ────────────────────────────────────────────────
     print("\n[2/8] Medici...")
     MEDICI = [
-        #dict(email='lucabianchi@medico.it',   nome='Luca',    cognome='Bianchi',   password='LucaB123',   matricola='MED001'),
+        dict(email='lucabianchi@medico.it',   nome='Luca',    cognome='Bianchi',   password='LucaB123',   matricola='MED001'),
         dict(email='annafontana@medico.it',   nome='Anna',    cognome='Fontana',   password='AnnaF456',   matricola='MED002'),
     ]
     
     for m in MEDICI:
-        model.crea_medico(email=m['email'], nome=m['nome'], cognome=m['cognome'], matricola=m['matricola'], password=m['password'])
+        if Utente.get(email=m['email']):
+            print(f"      SKIP  {m['email']} (esiste già)")
+        else:
+            model.crea_medico(email=m['email'], nome=m['nome'], cognome=m['cognome'], matricola=m['matricola'], password=m['password'])
 
 
     # ── 3. Pazienti ──────────────────────────────────────────────
     print("\n[3/8] Pazienti...")
+
+    PAZIENTI = [
+        dict(
+            email='marcoverdi@paziente.it',   nome='Marco',    cognome='Verdi',
+            password='MarcoV123',  cf='VRDMRC80A01H501A',
+            medico_email='lucabianchi@medico.it',
+            fumatore=False, ex_fumatore=True,  obesita=False, problemi_alcol=False, problemi_stupefacenti=False,
+            comorbidita='Ipertensione lieve, dislipidemia',
+        ),
+        dict(
+            email='giuliarossi@paziente.it',  nome='Giulia',   cognome='Rossi',
+            password='GiulR789',   cf='RSSGLL85M41F205Z',
+            medico_email='lucabianchi@medico.it',
+            fumatore=True,  ex_fumatore=False, obesita=True,  problemi_alcol=False, problemi_stupefacenti=False,
+            comorbidita='Neuropatia periferica',
+        ),
+        dict(
+            email='robertoneri@paziente.it',  nome='Roberto',  cognome='Neri',
+            password='RobeN321',   cf='NRERBT70C15L219X',
+            medico_email='annafontana@medico.it',
+            fumatore=False, ex_fumatore=False, obesita=False, problemi_alcol=True,  problemi_stupefacenti=False,
+            comorbidita='Retinopatia diabetica iniziale',
+        ),
+        dict(
+            email='sofiamarini@paziente.it',  nome='Sofia',    cognome='Marini',
+            password='SofM654',    cf='MRNSFO92P58G224K',
+            medico_email='annafontana@medico.it',
+            fumatore=False, ex_fumatore=False, obesita=True,  problemi_alcol=False, problemi_stupefacenti=False,
+            comorbidita='',
+        ),
+        dict(
+            email='davideesposito@paziente.it', nome='Davide', cognome='Esposito',
+            password='DavE987',    cf='SPSDVD88S10F839P',
+            medico_email='lucabianchi@medico.it',
+            fumatore=True,  ex_fumatore=False, obesita=False, problemi_alcol=False, problemi_stupefacenti=True,
+            comorbidita='Nefropatia stadio 2',
+        ),
+    ]
+
     segr_utente = Utente.get(email=SEGRETARI[0]['email'])
     for p in PAZIENTI:
         if Utente.get(email=p['email']):
             print(f"      SKIP  {p['email']} (esiste già)")
-            continue
-        u = Utente(email=p['email'], nome=p['nome'], cognome=p['cognome'],
-                   password=p['password'], ruolo='paziente')
-        medico = Medico.get(utente=Utente.get(email=p['medico_email']))
-        Paziente(
-            utente=u,
-            medico_riferimento=medico,
-            codice_fiscale=p['cf'],
+        else:
+            model.crea_paziente(
+            nome=p['nome'],
+            cognome=p['cognome'],
+            email=p['email'],
+            cf=p['cf'],
+            medico_id=p['medico_email'],
+            password=p['password'],
             fumatore=p['fumatore'],
             ex_fumatore=p['ex_fumatore'],
             obesita=p['obesita'],
             problemi_alcol=p['problemi_alcol'],
-            problemi_stupefacenti=p['problemi_stupefacenti'],
-            comorbidita=p.get('comorbidita', ''),
-            ultima_modifica_fumatore=segr_utente,
-            ultima_modifica_ex_fumatore=segr_utente,
-            ultima_modifica_obesita=segr_utente,
-            ultima_modifica_problemi_alcol=segr_utente,
-            ultima_modifica_problemi_stupefacenti=segr_utente,
-            ultima_modifica_comorbidita=segr_utente,
+            problemi_stupefacenti=p['problemi_stupefacenti']
         )
         print(f"      OK    {p['email']}")
     commit()
 
     # ── 4. Terapie ───────────────────────────────────────────────
     print("\n[4/8] Terapie...")
-    for paz_email, t_data in TERAPIE.items():
-        paz = Paziente.get(utente=Utente.get(email=paz_email))
-        med = Medico.get(utente=Utente.get(email=t_data['medico']))
-        if not paz or not med:
-            print(f"      SKIP  terapia {paz_email} (paziente/medico mancante)")
-            continue
-        # evita duplicati
-        _di = t_data['data_inizio']
-        existing = [t for t in paz.terapie if t.data_inizio == _di]
-        if existing:
-            print(f"      SKIP  terapia {paz_email} (già presente)")
-            continue
-        terapia = Terapia(
-            paziente=paz,
-            medico=med,
-            data_inizio=t_data['data_inizio'],
-            data_fine=t_data['data_fine'],
-            indicazioni=t_data.get('indicazioni', ''),
-        )
-        for a in t_data['assunzioni']:
-            farmaco = Farmaco.get(nome=a['farmaco_nome'])
-            if not farmaco:
-                print(f"      WARN  farmaco {a['farmaco_nome']} non trovato, uso ALTRO")
-                farmaco = Farmaco.get(nome='ALTRO')
-            Assunzioni_terapia(
-                terapia=terapia,
-                orario=a['orario'],
-                farmaco_nome=farmaco,
-                quantita=a['quantita'],
-                unita_misura=a['unita_misura'],
-            )
-        # Alert al paziente — template identico a model.crea_terapia
-        data_fine_str = str(t_data['data_fine']) if t_data['data_fine'] else "data da definire"
-        testo = (f"💊 Il Dr. {med.utente.nome} {med.utente.cognome} ti ha assegnato una nuova terapia"
-                 f" dal {t_data['data_inizio']} al {data_fine_str}.")
-        Alert(
-            utente=paz.utente,
-            informazioni=testo,
-            timestamp=datetime(t_data['data_inizio'].year,
-                               t_data['data_inizio'].month,
-                               t_data['data_inizio'].day, 9, 0),
-        )
-        print(f"      OK    terapia per {paz_email}")
-    commit()
 
+    TERAPIE = [
+        dict(
+            mail='marcoverdi@paziente.it',
+            medico='lucabianchi@medico.it',
+            data_inizio=MONTH_AGO,
+            data_fine=TODAY + timedelta(days=60),
+            indicazioni='Assumere metformina durante i pasti principali. Monitorare glicemia 2 volte/die.',
+            assunzioni=[
+                dict(orario='08:00', farmaco_nome='Metmorfina', quantita=500.0, unita_misura='mg'),
+                dict(orario='20:00', farmaco_nome='Metmorfina', quantita=500.0, unita_misura='mg'),
+            ],
+        ),
+        dict(
+            mail='giuliarossi@paziente.it',
+            medico='lucabianchi@medico.it',
+            data_inizio=MONTH_AGO - timedelta(days=15),
+            data_fine=TODAY + timedelta(days=45),
+            indicazioni='Schema basal-bolus. Insulina lenta la sera, rapida ai pasti solo se glicemia > 150 mg/dL.',
+            assunzioni=[
+                dict(orario='07:30', farmaco_nome='Insulina_Rapida', quantita=6.0, unita_misura='UI'),
+                dict(orario='13:00', farmaco_nome='Insulina_Rapida', quantita=8.0, unita_misura='UI'),
+                dict(orario='19:30', farmaco_nome='Insulina_Rapida', quantita=6.0, unita_misura='UI'),
+                dict(orario='22:00', farmaco_nome='Insulina_Lenta', quantita=14.0, unita_misura='UI'),
+            ],
+        ),
+        dict(
+            mail='robertoneri@paziente.it',
+            medico='annafontana@medico.it',
+            data_inizio=MONTH_AGO - timedelta(days=5),
+            data_fine=TODAY + timedelta(days=90),
+            indicazioni='Glipizide a stomaco vuoto. Controllare glicemia a digiuno ogni mattina.',
+            assunzioni=[
+                dict(orario='07:00', farmaco_nome='Glipizide', quantita=5.0, unita_misura='mg'),
+                dict(orario='19:00', farmaco_nome='Glipizide', quantita=5.0, unita_misura='mg'),
+            ],
+        ),
+        dict(
+            mail='sofiamarini@paziente.it',
+            medico='annafontana@medico.it',
+            data_inizio=MONTH_AGO,
+            data_fine=TODAY + timedelta(days=30),
+            indicazioni='Empagliflozin una volta al giorno. Aumentare apporto idrico.',
+            assunzioni=[
+                dict(orario='08:00', farmaco_nome='Empagliflozin', quantita=10.0, unita_misura='mg'),
+            ],
+        ),
+        dict(
+            mail='davideesposito@paziente.it',
+            medico='lucabianchi@medico.it',
+            data_inizio=MONTH_AGO - timedelta(days=10),
+            data_fine=TODAY + timedelta(days=20),
+            indicazioni='Sitagliptin mattino. Evitare alcol e stupefacenti. Follow-up renale mensile.',
+            assunzioni=[
+                dict(orario='08:00', farmaco_nome='Sitagliptin', quantita=100.0, unita_misura='mg'),
+            ],
+        ),
+    ]
+
+    for t in TERAPIE:
+        model.crea_terapia(
+            paziente_email=t['mail'],
+            medico_email=t['medico'],
+            data_inizio=t['data_inizio'],
+            data_fine=t['data_fine'],
+            assunzioni=t['assunzioni']
+        )
+        print(f"      OK    {t['mail']}: terapia")
     # ── 5. Misurazioni (ultimo mese) ─────────────────────────────
     print("\n[5/8] Misurazioni glicemiche...")
+
+    # Momenti di misurazione
+    MOMENTI = ['pre_colazione', 'post_colazione', 'pre_pranzo', 'post_pranzo', 'pre_cena', 'post_cena']
+
+    # Range glicemici realistici per profilo (min, max) per ogni momento
+    GLUCOSE_PROFILES = {
+        'marcoverdi@paziente.it':    [85, 110, 130, 165, 95, 145],   # ben controllato
+        'giuliarossi@paziente.it':   [140, 200, 155, 230, 130, 195], # difficile controllo
+        'robertoneri@paziente.it':   [95, 135, 115, 170, 100, 160],  # medio
+        'sofiamarini@paziente.it':   [110, 155, 125, 185, 115, 175], # leggermente alto
+        'davideesposito@paziente.it':[165, 240, 170, 260, 150, 220], # scarsamente controllato
+    }
+
+    def days_in_range(start: date, end: date):
+        """Genera tutte le date da start a end inclusi."""
+        d = start
+        while d <= end:
+            yield d
+            d += timedelta(days=1)
+
+
+    def jitter(val: float, pct: float = 0.12) -> float:
+        """Aggiunge rumore casuale ±pct% a un valore."""
+        return round(val * (1 + random.uniform(-pct, pct)), 1)
+
     for paz_data in PAZIENTI:
         paz_email = paz_data['email']
         paz = Paziente.get(utente=Utente.get(email=paz_email))
@@ -423,23 +269,19 @@ def seed():
                 if exists:
                     continue
                 base = profile[i]
-                Misurazione(paziente=paz, date=d, momento=momento, valore_mg_dl=jitter(base))
+                model.create_misurazione(paz_email, d, momento, jitter(base))
                 count += 1
         print(f"      OK    {paz_email}: {count} misurazioni")
-    commit()
 
     # ── 6. Assunzioni farmaci (ultimo mese) ──────────────────────
     print("\n[6/8] Assunzioni farmaci...")
-    for paz_data in PAZIENTI:
-        paz_email = paz_data['email']
-        paz = Paziente.get(utente=Utente.get(email=paz_email))
-        if not paz or paz_email not in TERAPIE:
-            continue
-        t_data = TERAPIE[paz_email]
+
+    for t in TERAPIE:
+        paz_email = t['mail']
         count = 0
         for d in days_in_range(MONTH_AGO, TODAY):
             # aderenza ~85%: ogni tanto il paziente salta una dose
-            for a in t_data['assunzioni']:
+            for a in t['assunzioni']:
                 if random.random() < 0.15:   # 15% skip
                     continue
                 farmaco = Farmaco.get(nome=a['farmaco_nome'])
@@ -449,24 +291,34 @@ def seed():
                 h, m_ = map(int, ora_str.split(':'))
                 m_ += random.randint(-10, 10)  # piccola variazione
                 m_  = max(0, min(59, m_))
-                # evita duplicati
-                ts = datetime(d.year, d.month, d.day, h, m_)
-                exists = Assunzione.get(paziente=paz, timestamp=ts, farmaco=farmaco)
-                if exists:
-                    continue
-                Assunzione(
-                    paziente=paz,
-                    timestamp=ts,
-                    farmaco=farmaco,
-                    quantita_assunta=a['quantita'],
-                    unita_misura=a['unita_misura'],
+
+                model.create_assunzione(
+                    patient_email=paz_email,
+                    data_assunzione=d,
+                    ora_assunzione=h,
+                    minuto_assunzione=m_,
+                    nome_farmaco=farmaco.nome,
+                    quantita_assunta=a['quantita']
                 )
                 count += 1
         print(f"      OK    {paz_email}: {count} assunzioni")
-    commit()
 
     # ── 7. Segnalazioni ──────────────────────────────────────────
     print("\n[7/8] Segnalazioni pazienti...")
+
+    SEGNALAZIONI = [
+        ('giuliarossi@paziente.it',   'Ipoglicemia notturna',
+        'Stanotte ho avuto sudorazione e tremori. Glicemia alle 3:00 era 54 mg/dL. Ho assunto zucchero. Ora sto bene.'),
+        ('davideesposito@paziente.it','Glicemia molto alta',
+        'Oggi pomeriggio ho misurato 310 mg/dL dopo pranzo. Non ho modificato la dieta ma ieri non ho dormito. Cosa faccio?'),
+        ('robertoneri@paziente.it',   'Disturbi visivi ricorrenti',
+        'Negli ultimi 5 giorni ho episodi di visione sfocata, soprattutto la mattina. Potrebbe essere legato alla glicemia?'),
+        ('marcoverdi@paziente.it',    'Mal di testa post-prandiale',
+        'Dopo i pasti abbondanti accuso cefalea. Ho correlato con le misurazioni: sembra comparire quando supero 170 mg/dL.'),
+        ('sofiamarini@paziente.it',   'Sete intensa prima settimana',
+        'Da quando ho iniziato Empagliflozin ho molta sete. Bevo circa 2.5L al giorno. È normale?'),
+    ]
+
     for paz_email, titolo, descrizione in SEGNALAZIONI:
         paz = Paziente.get(utente=Utente.get(email=paz_email))
         if not paz:
@@ -477,42 +329,61 @@ def seed():
             print(f"      SKIP  '{titolo}' (già presente)")
             continue
         days_back = random.randint(1, 20)
-        Segnalazione(
-            paziente=paz,
-            titolo=titolo,
-            descrizione=descrizione,
-            data_ora=NOW - timedelta(days=days_back, hours=random.randint(0, 12)),
-        )
-        # Alert al medico — template identico a model.create_segnalazione
-        med_utente = paz.medico_riferimento.utente
-        Alert(
-            utente=med_utente,
-            informazioni=(f"🔔 Il paziente {paz.utente.nome} {paz.utente.cognome}"
-                          f" ha inviato una nuova segnalazione: «{titolo} -- {descrizione}»."),
-            timestamp=NOW - timedelta(days=days_back),
+        model.create_segnalazione(
+            patient_email=paz_email,
+            title=titolo,
+            description=descrizione
         )
         print(f"      OK    '{titolo}' per {paz_email}")
     commit()
 
-    # ── 7b. Alert extra ──────────────────────────────────────────
-    print("\n      Alert aggiuntivi...")
-    for email, info in EXTRA_ALERTS:
-        u = Utente.get(email=email)
-        if not u:
-            continue
-        # evita duplicati
-        existing = [al for al in u.alert if al.informazioni == info]
-        if existing:
-            continue
-        Alert(
-            utente=u,
-            informazioni=info,
-            timestamp=NOW - timedelta(days=random.randint(0, 10)),
-        )
-    commit()
 
     # ── 8. Messaggi chat ────────────────────────────────────────
     print("\n[8/8] Chat...")
+
+    CHATS = [
+        # Marco ↔ Luca
+        ('marcoverdi@paziente.it',    'lucabianchi@medico.it',   4, [
+            ('paziente', 'Buongiorno Dottore, ho notato che la glicemia post-pranzo è spesso sopra 160. Devo preoccuparmi?'),
+            ('medico',   'Buongiorno Marco. Se è un dato occasionale non c\'è allarme immediato, ma vediamo la serie storica. Sta seguendo la dieta?'),
+            ('paziente', 'Sì, anche se il weekend è più difficile. Ieri sera ho mangiato fuori.'),
+            ('medico',   'Capito. Provi a registrare anche il pasto: è utile correlarlo alla glicemia. Ci sentiamo a fine settimana.'),
+        ]),
+        # Giulia ↔ Luca
+        ('giuliarossi@paziente.it',   'lucabianchi@medico.it',   7, [
+            ('paziente', 'Dottore, ieri sera ho dimenticato l\'insulina lenta. Come mi devo regolare stamattina?'),
+            ('medico',   'Non si preoccupi. Misuri la glicemia adesso: se è sotto 200 faccia la dose del mattino normalmente e salti la lenta di ieri.'),
+            ('paziente', 'Ho 210 mg/dL. Procedo con la rapida?'),
+            ('medico',   'Sì, proceda con 6 UI come da schema. Aggiunga 2 UI di correzione per la glicemia elevata. Monitori a pranzo.'),
+            ('paziente', 'Ok, fatto. Grazie mille per la risposta rapida.'),
+            ('medico',   'Prego. Ricordi: per dimenticanze notturne mi contatti subito, non aspetti la mattina.'),
+            ('paziente', 'Capito, me ne scuso. Prenderò un promemoria sul telefono.'),
+        ]),
+        # Roberto ↔ Anna
+        ('robertoneri@paziente.it',   'annafontana@medico.it',   5, [
+            ('paziente', 'Dottoressa Fontana, negli ultimi giorni ho la vista un po\' offuscata al mattino.'),
+            ('medico',   'Ciao Roberto. L\'offuscamento visivo può essere correlato a picchi glicemici notturni. Che valori registra a digiuno?'),
+            ('paziente', 'Tra 140 e 165 mg/dL.'),
+            ('medico',   'Sono valori un po\' alti per il digiuno. Valuterei di aggiungere Metformina serale. Venga in studio giovedì.'),
+            ('paziente', 'Ci sarò. Ha orari liberi nel pomeriggio?'),
+        ]),
+        # Sofia ↔ Anna
+        ('sofiamarini@paziente.it',   'annafontana@medico.it',   3, [
+            ('paziente', 'Buongiorno! Ho iniziato Empagliflozin da una settimana. Ho un po\' più sete, è normale?'),
+            ('medico',   'Sì, è un effetto atteso nei primi giorni. Aumenti l\'acqua a 2L/die. Dovrebbe normalizzarsi entro due settimane.'),
+            ('paziente', 'Ok perfetto, grazie!'),
+        ]),
+        # Davide ↔ Luca
+        ('davideesposito@paziente.it','lucabianchi@medico.it',   6, [
+            ('paziente', 'Dottore, ho valori altissimi questa settimana. Ho ripreso a fumare.'),
+            ('medico',   'Davide, l\'abbiamo discusso: il fumo peggiora significativamente la glicemia e la funzione renale. È urgente che smetta.'),
+            ('paziente', 'Lo so, ma sono in un momento difficile.'),
+            ('medico',   'Capisco. Parliamone. Posso indirizzarla al Centro Antifumo dell\'ASL, hanno ottimi risultati. Vuole che fissi un appuntamento?'),
+            ('paziente', 'Forse sì, grazie. Anche i valori renali mi preoccupano.'),
+            ('medico',   'Faremo un controllo creatinina e GFR entro fine mese. Intanto riduca il fumo il più possibile.'),
+        ]),
+    ]
+
     for paz_email, med_email, days_back_start, messaggi in CHATS:
         u_paz = Utente.get(email=paz_email)
         u_med = Utente.get(email=med_email)
@@ -534,13 +405,8 @@ def seed():
             destinatario= u_med if ruolo == 'paziente' else u_paz
             gap_minutes += random.randint(2, 15)   # sempre crescente
             ts = base_ts + timedelta(minutes=gap_minutes)
-            Messaggio(
-                mittente=mittente,
-                destinatario=destinatario,
-                testo=testo,
-                timestamp=ts,
-                letto=True,
-            )
+
+            model.invia_messaggio(mittente.email, destinatario.email, testo)
         print(f"      OK    chat {paz_email} ↔ {med_email} ({len(messaggi)} messaggi)")
     commit()
 
