@@ -1,7 +1,7 @@
 """Controller — callbacks del segretario."""
 
-from dash import Output, Input, State, html
-from models.model import model, Paziente, Medico
+from dash import Output, Input, State
+from models.model import model
 from views.secretary_view import patients_tab, medics_tab, inserting_tab
 
 

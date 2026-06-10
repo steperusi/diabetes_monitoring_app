@@ -2,8 +2,7 @@
 
 from dash import Output, Input, State, ctx, no_update, html, ALL, MATCH
 from models.model import model
-from pony.orm import db_session
-from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_assunzioni, render_storico_temp, messages_tab, render_chat, edit_patient_tab, edit_therapy_tab, render_storico_edit
+from views.medic_view import my_patients_tab, manage_therapy_tab, add_therapy_tab, patient_data_tab, render_storico_temp, messages_tab, render_chat, edit_patient_tab, edit_therapy_tab, render_storico_edit
 import plotly.express as px
 
 def register_callbacks(app):

@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from enum import Enum
 from datetime import datetime, date, timedelta
-from pony.orm import (Database, LongStr, Required, Optional, Set, PrimaryKey, db_session, select, commit, desc)
+from pony.orm import (Database, LongStr, Required, Optional, Set, PrimaryKey, db_session, commit)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -896,19 +896,6 @@ class OrmModel:
             for f in list(Farmaco.select())
         ]
 
-    # ---- validazione lato business ------------------------------------------
-    def validate_misurazione(self, valore, momento_type: str) -> tuple[str, str]:
-        """Restituisce (simbolo, colore_hex) per un valore glicemico."""
-        if valore is None:
-            return '-', '#9ca3af'
-        try:
-            val = float(valore)
-        except (ValueError, TypeError):
-            return '-', '#9ca3af'
-        if 'pre_' in momento_type:
-            return ('✓', '#22c55e') if 80 <= val <= 130 else ('✗', '#ef4444')
-        else:
-            return ('✓', '#22c55e') if val <= 180 else ('✗', '#ef4444')
 
     @db_session
     def validate_farmaco_in_terapia(self, patient_email: str, farmaco_nome: str) -> tuple[str, str]:
@@ -994,18 +981,31 @@ class OrmModel:
             return ('✓', '#22c55e') if val <= 180 else ('✗', '#ef4444')
 
     @db_session
-    def validate_medicine_entry(self, session_email: str, hour, minute, medicine_name, quantity) -> tuple[str, str]:
-        """Valida un'assunzione farmaco rispetto alla terapia attiva. Ritorna (simbolo, colore_hex)."""
-        if hour is None or minute is None or not medicine_name or not quantity:
+    def validate_medicine_entry(self, session_email, hour, minute, medicine_name, quantity):
+        """
+        Validates a medicine entry against active therapy.
+        Checks: medicine is prescribed and quantity matches.
+        Returns: ('✓', '#22c55e') valid, ('✗', '#ef4444') invalid, ('-', '#9ca3af') incomplete
+        """
+        if not medicine_name or not quantity:
             return '-', '#9ca3af'
+ 
+        medicine_str = str(medicine_name).strip()
         try:
-            terapie = self.get_terapie_paziente(session_email)
-            farmaci_in_terapia = [a['farmaco'] for t in terapie for a in t['assunzioni']]
-            if str(medicine_name).strip() in farmaci_in_terapia:
-                return '✓', '#22c55e'
+            prescribed_quantity = float(str(quantity).strip())
+        except (ValueError, TypeError):
             return '✗', '#ef4444'
-        except Exception:
-            return '✗', '#ef4444'
+ 
+        terapie = self.get_terapie_paziente(session_email)
+        for terapia in terapie:
+            for assunzione in terapia.get('assunzioni', []):
+                if assunzione['farmaco'].strip() == medicine_str:
+                    if abs(float(assunzione['quantita']) - prescribed_quantity) < 0.01:
+                        return '✓', '#22c55e'
+                    else:
+                        return '✗', '#ef4444'  # medicine found but wrong quantity
+ 
+        return '✗', '#ef4444'  # medicine not in any therapy
 
 
 model = OrmModel()

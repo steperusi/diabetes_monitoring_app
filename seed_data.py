@@ -32,7 +32,7 @@ TODAY      = date.today()
 MONTH_AGO  = TODAY - timedelta(days=30)
 NOW        = datetime.now()
 
-random.seed(42)
+random.seed(67)
 
 
 # ---------------------------------------------------------------------------

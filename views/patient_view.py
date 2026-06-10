@@ -1,7 +1,6 @@
 from dash import html, dcc
 from datetime import date
 from models.model import model, Farmaco
-from pony.orm import db_session
 
 HEADER = {
     'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center',
@@ -115,12 +114,9 @@ def render_storico(entries: list, session_email: str = None) -> list:
         # Get quantity and unit
         quantity = v.get('qty') if isinstance(v, dict) and 'qty' in v else v.get('quantita_assunta', '')
         unita_misura = v.get('unita_misura', 'N/D')
-        
         # Validate if session_email is provided
         if session_email:
-            # Import here to avoid circular imports
-            from controllers.patient_controller import _validate_medicine_entry
-            symbol, color = _validate_medicine_entry(session_email, hour, minute, medicine_name, quantity)
+            symbol, color = model.validate_medicine_entry(session_email, hour, minute, medicine_name, quantity)
             has_status = True
         else:
             symbol, color = '-', '#9ca3af'
