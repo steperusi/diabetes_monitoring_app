@@ -3,11 +3,12 @@
 # pip install -r requirements.txt
 # python app.py
 
+#per visionare gli utenti del sistema visualizzare il file seed_data.py
+
 """
 App Dash con architettura Model-View-Controller.
 """
 
-import argparse
 from dash import Dash, html, dcc, Input, State, Output
 
 from views.login_view import login_layout
@@ -57,6 +58,5 @@ patient_controller.register_callbacks(app)
 # ---- Main -------------------------------------------------------------------
 
 if __name__ == '__main__':
-    backend = 'orm'
     
     app.run(debug=True, port=8060)
