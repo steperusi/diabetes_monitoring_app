@@ -399,3 +399,9 @@ The current application is a **didactic prototype**. Possible future development
 * https://github.com/steperusi
 
 ---
+
+## Disclaimer
+
+This project was developed for **educational purposes**.
+
+It is a software engineering prototype and **must not be used as a medical device or as a replacement for professional medical advice, diagnosis, or treatment**.
